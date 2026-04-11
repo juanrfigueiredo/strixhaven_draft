@@ -168,6 +168,14 @@
   #card-images img {
     width: 150px;
     border-radius: 8px;
+    transition: transform 0.2s;
+    cursor: pointer;
+  }
+
+  #card-images img:hover {
+    transform: scale(2.5);
+    position: relative;
+    z-index: 10;
   }
 
   #toast {
