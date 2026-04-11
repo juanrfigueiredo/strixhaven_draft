@@ -4,510 +4,211 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTG Draft Pack Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --gold: #c9a84c;
-    --gold-light: #e8cc7a;
-    --gold-dark: #8a6b2a;
-    --ink: #1a1410;
-    --parchment: #f5eed8;
-    --parchment-dark: #e8dcc0;
-    --parchment-darker: #d4c49a;
-    --text: #2a1f0a;
-    --text-muted: #6b5030;
-    --border: rgba(201, 168, 76, 0.35);
-    --border-strong: rgba(201, 168, 76, 0.7);
-
-    --rare-color: #c9a84c;
-    --uncommon-color: #8aaec9;
-    --common-color: #b0b0b0;
-    --mythic-color: #e8803a;
-    --land-color: #7dc97a;
-    --special-color: #c97adc;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Crimson Pro', Georgia, serif;
-    background: var(--ink);
-    min-height: 100vh;
-    color: var(--text);
-    overflow-x: hidden;
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+    background: #121212;
+    color: #e0e0e0;
+    padding: 2rem 1rem;
   }
 
-  .bg-texture {
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.03) 0%, transparent 50%),
-      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='rgba(201,168,76,0.03)' stroke-width='0.5'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .page {
-    position: relative;
-    z-index: 1;
-    max-width: 860px;
+  .container {
+    max-width: 600px;
     margin: 0 auto;
-    padding: 3rem 2rem 4rem;
-  }
-
-  header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-
-  .logo-ornament {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .ornament-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, transparent, var(--gold-dark), var(--gold), var(--gold-dark), transparent);
-    max-width: 160px;
-  }
-
-  .ornament-diamond {
-    width: 8px;
-    height: 8px;
-    background: var(--gold);
-    transform: rotate(45deg);
-    flex-shrink: 0;
   }
 
   h1 {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
-    font-weight: 700;
-    color: var(--gold-light);
-    letter-spacing: 0.08em;
-    text-shadow: 0 0 40px rgba(201,168,76,0.3);
-    line-height: 1.2;
-  }
-
-  .subtitle {
-    font-family: 'Crimson Pro', serif;
-    font-style: italic;
-    color: var(--gold-dark);
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    letter-spacing: 0.05em;
-  }
-
-  .panel {
-    background: var(--parchment);
-    border: 1px solid var(--border-strong);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .panel::before {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .panel-inner {
-    padding: 1.75rem 2rem;
-    position: relative;
-    z-index: 2;
-  }
-
-  .panel-title {
-    font-family: 'Cinzel', serif;
-    font-size: 0.75rem;
+    font-size: 1.3rem;
     font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--gold-dark);
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
+  }
+
+  .row {
     display: flex;
+    gap: 0.5rem;
     align-items: center;
-    gap: 0.75rem;
-  }
-
-  .panel-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-strong);
-  }
-
-  .input-row {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-end;
-  }
-
-  .field {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    font-family: 'Cinzel', serif;
-    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
   }
 
   input[type="text"] {
-    font-family: 'Crimson Pro', serif;
-    font-size: 1.05rem;
-    padding: 0.6rem 0.85rem;
-    border: 1px solid var(--parchment-darker);
-    border-radius: 3px;
-    background: #fffef5;
-    color: var(--text);
-    transition: border-color 0.2s;
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    font-size: 15px;
     outline: none;
-    width: 100%;
   }
 
   input[type="text"]:focus {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+    border-color: #888;
   }
 
-  input[type="text"]::placeholder {
-    color: var(--parchment-darker);
-    font-style: italic;
-  }
-
-  .btn {
-    font-family: 'Cinzel', serif;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    padding: 0.65rem 1.4rem;
-    border-radius: 3px;
-    border: none;
+  button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.18s;
     white-space: nowrap;
   }
 
-  .btn:active { transform: scale(0.97); }
+  button:hover { background: #333; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .btn-primary {
-    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 50%, var(--gold-dark) 100%);
-    color: var(--ink);
+  #status {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 0.5rem;
+    min-height: 1.2em;
   }
 
-  .btn-primary:hover {
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
-    box-shadow: 0 2px 12px rgba(201,168,76,0.35);
+  #stats {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 1.5rem;
   }
 
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+  hr {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 1.5rem 0;
   }
 
-  .btn-secondary {
-    background: transparent;
-    color: var(--gold);
-    border: 1px solid var(--gold-dark);
-  }
-
-  .btn-secondary:hover {
-    background: rgba(201,168,76,0.08);
-    border-color: var(--gold);
-  }
-
-  .status-bar {
-    margin-top: 1rem;
-    min-height: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-
-  .status-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .status-dot.idle { background: var(--parchment-darker); }
-  .status-dot.loading { background: var(--gold); animation: pulse 1s ease-in-out infinite; }
-  .status-dot.ok { background: #5a9e6a; }
-  .status-dot.err { background: #b85555; }
-
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  .status-text {
-    font-size: 0.88rem;
-    color: var(--text-muted);
-    font-style: italic;
-  }
-
-  .stats-row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-  }
-
-  .stat-chip {
-    font-size: 0.78rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: 20px;
-    border: 1px solid;
-    font-family: 'Cinzel', serif;
-    letter-spacing: 0.04em;
-  }
-
-  .chip-mythic  { background: rgba(232,128,58,0.12); border-color: var(--mythic-color); color: #8a4010; }
-  .chip-rare    { background: rgba(201,168,76,0.12); border-color: var(--rare-color);   color: var(--gold-dark); }
-  .chip-uncommon{ background: rgba(138,174,201,0.12);border-color: var(--uncommon-color);color: #2a5a7a; }
-  .chip-common  { background: rgba(176,176,176,0.12);border-color: var(--common-color); color: #505050; }
-  .chip-land    { background: rgba(125,201,122,0.12);border-color: var(--land-color);   color: #2a6a28; }
-  .chip-special { background: rgba(201,122,220,0.12);border-color: var(--special-color);color: #6a2a7a; }
-
-  .divider {
-    height: 1px;
-    background: linear-gradient(to right, transparent, var(--border-strong), transparent);
-    margin: 1.75rem 0;
-  }
-
-  .pack-area {
-    display: none;
-  }
-
-  .pack-area.visible {
-    display: block;
-  }
+  #pack-area { display: none; }
 
   .pack-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    gap: 0.75rem;
   }
 
-  .pack-title {
-    font-family: 'Cinzel', serif;
+  .pack-header h2 {
     font-size: 1rem;
-    color: var(--text);
     font-weight: 600;
-    letter-spacing: 0.05em;
-  }
-
-  .pack-subtitle {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    font-style: italic;
-    margin-top: 0.2rem;
-  }
-
-  .card-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .card-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.45rem 0.6rem;
-    border-radius: 3px;
-    transition: background 0.12s;
-  }
-
-  .card-item:hover { background: rgba(201,168,76,0.06); }
-
-  .rarity-pip {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    border: 1px solid rgba(0,0,0,0.1);
-  }
-
-  .pip-mythic   { background: var(--mythic-color); }
-  .pip-rare     { background: var(--rare-color); }
-  .pip-uncommon { background: var(--uncommon-color); }
-  .pip-common   { background: var(--common-color); }
-  .pip-land     { background: var(--land-color); }
-  .pip-special  { background: var(--special-color); }
-
-  .card-name {
-    flex: 1;
-    font-size: 0.97rem;
-    color: var(--text);
-    font-weight: 400;
-  }
-
-  .card-cost {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    font-family: monospace;
-    min-width: 4rem;
-    text-align: right;
-  }
-
-  .card-type {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    min-width: 7rem;
-    font-style: italic;
-  }
-
-  .rarity-label {
-    font-family: 'Cinzel', serif;
-    font-size: 0.66rem;
-    letter-spacing: 0.08em;
-    min-width: 4.5rem;
-    text-align: right;
-  }
-
-  .r-mythic   { color: var(--mythic-color); }
-  .r-rare     { color: var(--gold-dark); }
-  .r-uncommon { color: #4a7a9a; }
-  .r-common   { color: #888; }
-  .r-land     { color: #3a7a38; }
-  .r-special  { color: #7a3a8a; }
-
-  .section-sep {
-    height: 1px;
-    background: var(--border);
-    margin: 4px 0;
+    color: #fff;
   }
 
   .pack-actions {
     display: flex;
+    gap: 0.5rem;
+  }
+
+  ul#card-list {
+    list-style: none;
+  }
+
+  li.card-item {
+    display: flex;
+    align-items: center;
     gap: 0.6rem;
-    flex-wrap: wrap;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #222;
   }
 
-  .toast {
+  .rarity-pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pip-mythic   { background: #e8803a; }
+  .pip-rare     { background: #c9a84c; }
+  .pip-uncommon { background: #7aaec9; }
+  .pip-common   { background: #888; }
+  .pip-land     { background: #7dc97a; }
+  .pip-special  { background: #c97adc; }
+
+  .card-name { flex: 1; }
+
+  .card-cost {
+    font-size: 13px;
+    color: #888;
+    font-family: monospace;
+  }
+
+  .card-type {
+    font-size: 13px;
+    color: #777;
+    min-width: 100px;
+    text-align: right;
+    font-style: italic;
+  }
+
+  li.sep {
+    border: none;
+    border-top: 1px solid #2a2a2a;
+    margin: 4px 0;
+    padding: 0;
+  }
+
+  #placeholder {
+    color: #555;
+    font-size: 14px;
+  }
+
+  #toast {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--ink);
-    color: var(--gold-light);
-    font-family: 'Cinzel', serif;
-    font-size: 0.78rem;
-    letter-spacing: 0.08em;
-    padding: 0.7rem 1.25rem;
-    border: 1px solid var(--gold-dark);
-    border-radius: 3px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-size: 13px;
     opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.25s;
+    transition: opacity 0.2s;
     pointer-events: none;
-    z-index: 999;
   }
 
-  .toast.show { opacity: 1; transform: translateY(0); }
-
-  @media (max-width: 600px) {
-    .input-row { flex-direction: column; }
-    .card-type, .card-cost { display: none; }
-    .rarity-label { min-width: 3rem; }
-    .page { padding: 2rem 1rem 3rem; }
-    .panel-inner { padding: 1.25rem 1rem; }
-  }
+  #toast.show { opacity: 1; }
 </style>
 </head>
 <body>
+<div class="container">
+  <h1>MTG Draft Pack Generator</h1>
 
-<div class="bg-texture"></div>
-
-<div class="page">
-  <header>
-    <div class="logo-ornament">
-      <div class="ornament-line"></div>
-      <div class="ornament-diamond"></div>
-      <div class="ornament-line"></div>
-    </div>
-    <h1>Draft Pack Generator</h1>
-    <p class="subtitle">Magic: The Gathering · Booster Simulation</p>
-    <div class="logo-ornament" style="margin-top:1rem;margin-bottom:0">
-      <div class="ornament-line"></div>
-      <div class="ornament-diamond"></div>
-      <div class="ornament-line"></div>
-    </div>
-  </header>
-
-  <div class="panel">
-    <div class="panel-inner">
-      <div class="panel-title">Set Selection</div>
-
-      <div class="input-row">
-        <div class="field">
-          <label for="set-input">Set Code</label>
-          <input type="text" id="set-input" placeholder="e.g. sos, dsk, blb…" maxlength="10" autocomplete="off" autocorrect="off" spellcheck="false">
-        </div>
-        <button class="btn btn-primary" id="fetch-btn" onclick="fetchSet()">Fetch Set</button>
-      </div>
-
-      <div class="status-bar">
-        <div class="status-dot idle" id="status-dot"></div>
-        <span class="status-text" id="status-text">Enter a set code and fetch to load the card pool.</span>
-      </div>
-
-      <div class="stats-row" id="stats-row" style="display:none"></div>
-    </div>
+  <div class="row">
+    <input type="text" id="set-input" placeholder="Set code (e.g. sos, dsk)" maxlength="10" autocomplete="off" spellcheck="false">
+    <button id="fetch-btn" onclick="fetchSet()">Fetch Set</button>
   </div>
 
-  <div class="divider"></div>
+  <div id="status">Enter a set code to load the card pool.</div>
+  <div id="stats"></div>
 
-  <div class="panel">
-    <div class="panel-inner">
-      <div class="panel-title">Booster Pack</div>
+  <hr>
 
-      <div class="pack-area" id="pack-area">
-        <div class="pack-header">
-          <div>
-            <div class="pack-title" id="pack-title">Loading…</div>
-            <div class="pack-subtitle" id="pack-subtitle"></div>
-          </div>
-          <div class="pack-actions">
-            <button class="btn btn-secondary" onclick="generatePack()">↺ New Pack</button>
-            <button class="btn btn-primary" onclick="copyPack()">Copy to Clipboard</button>
-          </div>
-        </div>
-        <ul class="card-list" id="card-list"></ul>
-      </div>
-
-      <div id="pack-placeholder" style="color: var(--text-muted); font-style: italic; font-size: 0.92rem; text-align: center; padding: 1.5rem 0;">
-        Fetch a set to generate your first booster pack.
+  <div id="pack-area">
+    <div class="pack-header">
+      <h2 id="pack-title"></h2>
+      <div class="pack-actions">
+        <button onclick="generatePack()">New Pack</button>
+        <button onclick="copyPack()">Copy</button>
       </div>
     </div>
+    <ul id="card-list"></ul>
   </div>
+
+  <div id="placeholder">Fetch a set to generate a pack.</div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
 let cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
 let setCode = '';
-let setName = '';
 
 const PROXY = 'https://corsproxy.io/?url=';
 
@@ -520,55 +221,39 @@ const rarityMap = {
   's': 'special', 'special': 'special', 'bonus': 'special', 'timeshifted': 'special'
 };
 
-function setStatus(state, msg) {
-  const dot = document.getElementById('status-dot');
-  dot.className = 'status-dot ' + state;
-  document.getElementById('status-text').textContent = msg;
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
 }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  setTimeout(() => t.classList.remove('show'), 2000);
 }
 
 async function fetchSet() {
   const code = document.getElementById('set-input').value.trim().toLowerCase();
-  if (!code) { setStatus('err', 'Please enter a set code.'); return; }
+  if (!code) { setStatus('Please enter a set code.'); return; }
 
-  setStatus('loading', `Fetching set "${code.toUpperCase()}"…`);
+  setStatus('Fetching...');
   document.getElementById('fetch-btn').disabled = true;
-  document.getElementById('stats-row').style.display = 'none';
-  document.getElementById('pack-area').classList.remove('visible');
-  document.getElementById('pack-placeholder').style.display = 'block';
+  document.getElementById('stats').textContent = '';
+  document.getElementById('pack-area').style.display = 'none';
+  document.getElementById('placeholder').style.display = 'block';
 
-  const url = `https://mtg.wtf/card?q=set%3A${encodeURIComponent(code)}`;
-  const proxyUrl = PROXY + encodeURIComponent(url);
+  const url = 'https://mtg.wtf/card?q=set%3A' + encodeURIComponent(code);
 
   try {
-    const resp = await fetch(proxyUrl, {
-      headers: {
-        'Cookie': 'default_view=checklist',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
+    const resp = await fetch(PROXY + encodeURIComponent(url), {
+      headers: { 'Cookie': 'default_view=checklist' }
     });
-
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const html = await resp.text();
     parseCards(html, code);
   } catch (e) {
-    // Try alternative approach via direct fetch with cookie header
-    try {
-      const resp2 = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, {
-        headers: { 'Cookie': 'default_view=checklist' }
-      });
-      const html = await resp2.text();
-      parseCards(html, code);
-    } catch (e2) {
-      setStatus('err', `Failed to fetch: ${e2.message}. Try a CORS proxy or local server.`);
-      document.getElementById('fetch-btn').disabled = false;
-    }
+    setStatus('Error: ' + e.message);
+    document.getElementById('fetch-btn').disabled = false;
   }
 }
 
@@ -576,26 +261,16 @@ function parseCards(html, code) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
 
-  // Try checklist table first
   let cards = parseChecklist(doc);
-
-  // Fallback: parse card entries from the card view
-  if (cards.length === 0) {
-    cards = parseCardView(doc);
-  }
+  if (cards.length === 0) cards = parseCardView(doc);
 
   if (cards.length === 0) {
-    setStatus('err', `No cards found for "${code.toUpperCase()}". Check the set code.`);
+    setStatus('No cards found for "' + code.toUpperCase() + '". Check the set code.');
     document.getElementById('fetch-btn').disabled = false;
     return;
   }
 
-  // Infer set name
-  const h1 = doc.querySelector('h1');
-  setName = h1 ? h1.textContent.trim().replace(/^\d+ cards found/, '').trim() : code.toUpperCase();
   setCode = code.toUpperCase();
-
-  // Bucket by rarity
   cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
 
   cards.forEach(c => {
@@ -603,11 +278,10 @@ function parseCards(html, code) {
     cardPool[bucket].push(c);
   });
 
-  const total = cards.length;
-  setCode = code.toUpperCase();
   localStorage.setItem('mtg_cardpool', JSON.stringify(cardPool));
   localStorage.setItem('mtg_setcode', setCode);
-  setStatus('ok', `${total} cards loaded for ${setCode}.`);
+
+  setStatus(cards.length + ' cards loaded for ' + setCode + '.');
   showStats();
   generatePack();
   document.getElementById('fetch-btn').disabled = false;
@@ -655,48 +329,31 @@ function parseChecklist(doc) {
 
 function parseCardView(doc) {
   const cards = [];
-  // Parse from the card listing (non-checklist view)
   const entries = doc.querySelectorAll('h3 a');
-
   entries.forEach(a => {
     const parent = a.closest('div, li, section') || a.parentElement?.parentElement;
     const name = a.textContent.trim();
     if (!name || name.length < 2) return;
-
-    // Try to find rarity in nearby text
     const text = parent ? parent.textContent : '';
-    let rarity = 'common';
-    if (/mythic rare/i.test(text)) rarity = 'mythic';
-    else if (/\brare\b/i.test(text)) rarity = 'rare';
-    else if (/uncommon/i.test(text)) rarity = 'uncommon';
-    else if (/basic land/i.test(text)) rarity = 'land';
-
-    // Try to get mana cost from siblings
-    const costEl = a.closest('h3')?.querySelector('span.cost, .mana');
-    const cost = costEl ? costEl.textContent.trim() : '';
-
-    cards.push({ number: '', name, cost, type: '', rarity, artist: '' });
+    let rarity = 'c';
+    if (/mythic rare/i.test(text)) rarity = 'm';
+    else if (/\brare\b/i.test(text)) rarity = 'r';
+    else if (/uncommon/i.test(text)) rarity = 'u';
+    else if (/basic land/i.test(text)) rarity = 'l';
+    cards.push({ number: '', name, cost: '', type: '', rarity, artist: '' });
   });
-
   return cards;
 }
 
 function showStats() {
-  const row = document.getElementById('stats-row');
-  const buckets = [
-    { key: 'mythic', label: 'Mythic', cls: 'chip-mythic' },
-    { key: 'rare', label: 'Rare', cls: 'chip-rare' },
-    { key: 'uncommon', label: 'Uncommon', cls: 'chip-uncommon' },
-    { key: 'common', label: 'Common', cls: 'chip-common' },
-    { key: 'land', label: 'Land', cls: 'chip-land' },
-    { key: 'special', label: 'Special', cls: 'chip-special' },
-  ];
-
-  row.innerHTML = buckets
-    .filter(b => cardPool[b.key].length > 0)
-    .map(b => `<span class="stat-chip ${b.cls}">${cardPool[b.key].length} ${b.label}</span>`)
-    .join('');
-  row.style.display = 'flex';
+  const parts = [];
+  if (cardPool.mythic.length)   parts.push(cardPool.mythic.length + ' M');
+  if (cardPool.rare.length)     parts.push(cardPool.rare.length + ' R');
+  if (cardPool.uncommon.length) parts.push(cardPool.uncommon.length + ' U');
+  if (cardPool.common.length)   parts.push(cardPool.common.length + ' C');
+  if (cardPool.land.length)     parts.push(cardPool.land.length + ' L');
+  if (cardPool.special.length)  parts.push(cardPool.special.length + ' S');
+  document.getElementById('stats').textContent = parts.join(' · ');
 }
 
 function pick(arr, n) {
@@ -713,11 +370,8 @@ function generatePack() {
   const total = Object.values(cardPool).flat().length;
   if (total === 0) return;
 
-  // Standard MtG booster: 1 rare/mythic, 3 uncommon, 10 common, 1 land (sometimes)
-  // Mythic appears ~1/8 packs
   const pack = [];
 
-  // Rare/Mythic slot
   const useMythic = cardPool.mythic.length > 0 && Math.random() < (1/8);
   if (useMythic) {
     pack.push(...pick(cardPool.mythic, 1));
@@ -727,23 +381,17 @@ function generatePack() {
     pack.push(...pick(cardPool.mythic, 1));
   }
 
-  // Uncommons
-  const uncommonCount = Math.min(3, cardPool.uncommon.length);
-  pack.push(...pick(cardPool.uncommon, uncommonCount));
+  pack.push(...pick(cardPool.uncommon, Math.min(3, cardPool.uncommon.length)));
 
-  // Fill commons up to 14 (standard booster)
   const slotsLeft = Math.max(0, 14 - pack.length);
   let commonPool = [...cardPool.common];
-  if (cardPool.land.length > 0) {
-    commonPool = [...commonPool, ...cardPool.land.slice(0, 5)];
-  }
+  if (cardPool.land.length > 0) commonPool = [...commonPool, ...cardPool.land.slice(0, 5)];
   pack.push(...pick(commonPool, Math.min(slotsLeft, commonPool.length)));
 
-  // If pack is still small (set has few rarities), pad with whatever is available
   if (pack.length < 5) {
     const all = Object.values(cardPool).flat();
-    const alreadyNames = new Set(pack.map(c => c.name));
-    const extras = all.filter(c => !alreadyNames.has(c.name));
+    const names = new Set(pack.map(c => c.name));
+    const extras = all.filter(c => !names.has(c.name));
     pack.push(...pick(extras, Math.min(14 - pack.length, extras.length)));
   }
 
@@ -753,10 +401,10 @@ function generatePack() {
 const rarityOrder = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
 
 function renderPack(pack) {
-  const sorted = [...pack].sort((a,b) => {
+  const sorted = [...pack].sort((a, b) => {
     const ra = rarityMap[a.rarity.toLowerCase()] || 'common';
     const rb = rarityMap[b.rarity.toLowerCase()] || 'common';
-    return (rarityOrder[ra]??5) - (rarityOrder[rb]??5);
+    return (rarityOrder[ra] ?? 5) - (rarityOrder[rb] ?? 5);
   });
 
   const list = document.getElementById('card-list');
@@ -767,68 +415,55 @@ function renderPack(pack) {
     const r = rarityMap[card.rarity.toLowerCase()] || 'common';
     if (lastRarity && lastRarity !== r) {
       const sep = document.createElement('li');
-      sep.className = 'section-sep';
+      sep.className = 'sep';
       list.appendChild(sep);
     }
     lastRarity = r;
 
     const li = document.createElement('li');
     li.className = 'card-item';
-    li.innerHTML = `
-      <div class="rarity-pip pip-${r}"></div>
-      <span class="card-name">${escHtml(card.name)}</span>
-      <span class="card-cost">${escHtml(card.cost)}</span>
-      <span class="card-type">${escHtml(shortType(card.type))}</span>
-    `;
+    li.innerHTML =
+      '<div class="rarity-pip pip-' + r + '"></div>' +
+      '<span class="card-name">' + escHtml(card.name) + '</span>' +
+      '<span class="card-cost">' + escHtml(card.cost) + '</span>' +
+      '<span class="card-type">' + escHtml(shortType(card.type)) + '</span>';
     list.appendChild(li);
   });
 
-  const packTitle = document.getElementById('pack-title');
-  const packSub = document.getElementById('pack-subtitle');
-  packTitle.textContent = `${setCode} Booster Pack`;
-  packSub.textContent = `${pack.length} cards · ${new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
-
-  document.getElementById('pack-area').classList.add('visible');
-  document.getElementById('pack-placeholder').style.display = 'none';
+  document.getElementById('pack-title').textContent = setCode + ' Booster Pack (' + pack.length + ' cards)';
+  document.getElementById('pack-area').style.display = 'block';
+  document.getElementById('placeholder').style.display = 'none';
 }
 
 function shortType(type) {
   if (!type) return '';
-  return type.replace('Legendary ', '').replace('Creature — ', 'Creature · ').split('//')[0].trim().substring(0, 28);
-}
-
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return type.split('//')[0].trim().substring(0, 30);
 }
 
 function escHtml(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 async function copyPack() {
   const items = document.querySelectorAll('#card-list .card-item');
   if (!items.length) return;
-
   const lines = [];
   items.forEach(li => {
     const name = li.querySelector('.card-name')?.textContent.trim();
     if (name) lines.push(name);
   });
-
   try {
     await navigator.clipboard.writeText(lines.join('\n'));
-    showToast('Pack copied to clipboard!');
+    showToast('Copied!');
   } catch {
     prompt('Copy this pack:', lines.join('\n'));
   }
 }
 
-// Allow Enter key to trigger fetch
 document.getElementById('set-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') fetchSet();
 });
 
-// Load from localStorage on startup
 (function() {
   const savedPool = localStorage.getItem('mtg_cardpool');
   const savedCode = localStorage.getItem('mtg_setcode');
@@ -838,7 +473,7 @@ document.getElementById('set-input').addEventListener('keydown', e => {
       setCode = savedCode;
       document.getElementById('set-input').value = savedCode.toLowerCase();
       const total = Object.values(cardPool).flat().length;
-      setStatus('ok', `${total} cards loaded for ${setCode} (from cache).`);
+      setStatus(total + ' cards loaded for ' + setCode + ' (cached).');
       showStats();
       generatePack();
     } catch(e) {
