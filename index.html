@@ -512,12 +512,12 @@ let setName = '';
 const PROXY = 'https://corsproxy.io/?url=';
 
 const rarityMap = {
-  'mythic rare': 'mythic', 'mythic': 'mythic',
-  'rare': 'rare',
-  'uncommon': 'uncommon',
-  'common': 'common',
-  'basic land': 'land', 'land': 'land',
-  'special': 'special', 'bonus': 'special', 'timeshifted': 'special'
+  'm': 'mythic', 'mythic rare': 'mythic', 'mythic': 'mythic',
+  'r': 'rare', 'rare': 'rare',
+  'u': 'uncommon', 'uncommon': 'uncommon',
+  'c': 'common', 'common': 'common',
+  'l': 'land', 'b': 'land', 'basic land': 'land', 'land': 'land',
+  's': 'special', 'special': 'special', 'bonus': 'special', 'timeshifted': 'special'
 };
 
 function setStatus(state, msg) {
@@ -768,7 +768,6 @@ function renderPack(pack) {
       <span class="card-name">${escHtml(card.name)}</span>
       <span class="card-cost">${escHtml(card.cost)}</span>
       <span class="card-type">${escHtml(shortType(card.type))}</span>
-      <span class="rarity-label r-${r}">${capitalize(r)}</span>
     `;
     list.appendChild(li);
   });
@@ -799,13 +798,10 @@ async function copyPack() {
   const items = document.querySelectorAll('#card-list .card-item');
   if (!items.length) return;
 
-  const lines = [`=== ${setCode} Booster Pack ===`];
+  const lines = [];
   items.forEach(li => {
     const name = li.querySelector('.card-name')?.textContent.trim();
-    const rarity = li.querySelector('.rarity-label')?.textContent.trim();
-    const type = li.querySelector('.card-type')?.textContent.trim();
-    const cost = li.querySelector('.card-cost')?.textContent.trim();
-    if (name) lines.push(`${name}  [${rarity}]${type ? '  ' + type : ''}${cost ? '  ' + cost : ''}`);
+    if (name) lines.push(name);
   });
 
   try {
