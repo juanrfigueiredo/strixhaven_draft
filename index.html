@@ -319,6 +319,7 @@ function parseChecklist(doc) {
       const name = get('name');
       const rarity = get('rarity') || 'c';
       if (!name) return;
+      console.log('Card:', name, '| raw rarity:', JSON.stringify(rarity), '| all cells:', cells.map(c => c.textContent.trim()));
       cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity, artist: get('artist') });
     });
 
