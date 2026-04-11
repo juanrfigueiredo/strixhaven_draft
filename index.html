@@ -2,480 +2,824 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Strixhaven Pack Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTG Draft Pack Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
 <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8cc7a;
+    --gold-dark: #8a6b2a;
+    --ink: #1a1410;
+    --parchment: #f5eed8;
+    --parchment-dark: #e8dcc0;
+    --parchment-darker: #d4c49a;
+    --text: #2a1f0a;
+    --text-muted: #6b5030;
+    --border: rgba(201, 168, 76, 0.35);
+    --border-strong: rgba(201, 168, 76, 0.7);
+
+    --rare-color: #c9a84c;
+    --uncommon-color: #8aaec9;
+    --common-color: #b0b0b0;
+    --mythic-color: #e8803a;
+    --land-color: #7dc97a;
+    --special-color: #c97adc;
+  }
+
   body {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    background: #1e1e1e;
-    color: #fff;
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--ink);
+    min-height: 100vh;
+    color: var(--text);
+    overflow-x: hidden;
   }
-  button {
-    padding: 10px 15px;
-    margin-right: 10px;
-    font-size: 16px;
-    cursor: pointer;
+
+  .bg-texture {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.03) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='rgba(201,168,76,0.03)' stroke-width='0.5'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
   }
-  textarea {
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 2rem 4rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .logo-ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .ornament-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dark), var(--gold), var(--gold-dark), transparent);
+    max-width: 160px;
+  }
+
+  .ornament-diamond {
+    width: 8px;
+    height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--gold-light);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 40px rgba(201,168,76,0.3);
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    color: var(--gold-dark);
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .panel {
+    background: var(--parchment);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .panel-inner {
+    padding: 1.75rem 2rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-dark);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+  }
+
+  .field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+  }
+
+  input[type="text"] {
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.05rem;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--parchment-darker);
+    border-radius: 3px;
+    background: #fffef5;
+    color: var(--text);
+    transition: border-color 0.2s;
+    outline: none;
     width: 100%;
-    height: 300px;
-    margin-top: 20px;
-    background: #111;
-    color: #0f0;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+  }
+
+  input[type="text"]::placeholder {
+    color: var(--parchment-darker);
+    font-style: italic;
+  }
+
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 0.65rem 1.4rem;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+    color: var(--ink);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+    box-shadow: 0 2px 12px rgba(201,168,76,0.35);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold-dark);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(201,168,76,0.08);
+    border-color: var(--gold);
+  }
+
+  .status-bar {
+    margin-top: 1rem;
+    min-height: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-dot.idle { background: var(--parchment-darker); }
+  .status-dot.loading { background: var(--gold); animation: pulse 1s ease-in-out infinite; }
+  .status-dot.ok { background: #5a9e6a; }
+  .status-dot.err { background: #b85555; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .status-text {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .stat-chip {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    border: 1px solid;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.04em;
+  }
+
+  .chip-mythic  { background: rgba(232,128,58,0.12); border-color: var(--mythic-color); color: #8a4010; }
+  .chip-rare    { background: rgba(201,168,76,0.12); border-color: var(--rare-color);   color: var(--gold-dark); }
+  .chip-uncommon{ background: rgba(138,174,201,0.12);border-color: var(--uncommon-color);color: #2a5a7a; }
+  .chip-common  { background: rgba(176,176,176,0.12);border-color: var(--common-color); color: #505050; }
+  .chip-land    { background: rgba(125,201,122,0.12);border-color: var(--land-color);   color: #2a6a28; }
+  .chip-special { background: rgba(201,122,220,0.12);border-color: var(--special-color);color: #6a2a7a; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border-strong), transparent);
+    margin: 1.75rem 0;
+  }
+
+  .pack-area {
+    display: none;
+  }
+
+  .pack-area.visible {
+    display: block;
+  }
+
+  .pack-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .pack-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .pack-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.2rem;
+  }
+
+  .card-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 3px;
+    transition: background 0.12s;
+  }
+
+  .card-item:hover { background: rgba(201,168,76,0.06); }
+
+  .rarity-pip {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .pip-mythic   { background: var(--mythic-color); }
+  .pip-rare     { background: var(--rare-color); }
+  .pip-uncommon { background: var(--uncommon-color); }
+  .pip-common   { background: var(--common-color); }
+  .pip-land     { background: var(--land-color); }
+  .pip-special  { background: var(--special-color); }
+
+  .card-name {
+    flex: 1;
+    font-size: 0.97rem;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .card-cost {
+    font-size: 0.82rem;
+    color: var(--text-muted);
     font-family: monospace;
-    padding: 10px;
+    min-width: 4rem;
+    text-align: right;
+  }
+
+  .card-type {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    min-width: 7rem;
+    font-style: italic;
+  }
+
+  .rarity-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    min-width: 4.5rem;
+    text-align: right;
+  }
+
+  .r-mythic   { color: var(--mythic-color); }
+  .r-rare     { color: var(--gold-dark); }
+  .r-uncommon { color: #4a7a9a; }
+  .r-common   { color: #888; }
+  .r-land     { color: #3a7a38; }
+  .r-special  { color: #7a3a8a; }
+
+  .section-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .pack-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--ink);
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    padding: 0.7rem 1.25rem;
+    border: 1px solid var(--gold-dark);
+    border-radius: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    .input-row { flex-direction: column; }
+    .card-type, .card-cost { display: none; }
+    .rarity-label { min-width: 3rem; }
+    .page { padding: 2rem 1rem 3rem; }
+    .panel-inner { padding: 1.25rem 1rem; }
   }
 </style>
 </head>
 <body>
 
-<h1>Strixhaven Pack Generator</h1>
+<div class="bg-texture"></div>
 
-<button onclick="generatePack()">Generate Pack</button>
-<button onclick="copyToClipboard()">Copy to Clipboard</button>
+<div class="page">
+  <header>
+    <div class="logo-ornament">
+      <div class="ornament-line"></div>
+      <div class="ornament-diamond"></div>
+      <div class="ornament-line"></div>
+    </div>
+    <h1>Draft Pack Generator</h1>
+    <p class="subtitle">Magic: The Gathering · Booster Simulation</p>
+    <div class="logo-ornament" style="margin-top:1rem;margin-bottom:0">
+      <div class="ornament-line"></div>
+      <div class="ornament-diamond"></div>
+      <div class="ornament-line"></div>
+    </div>
+  </header>
 
-<textarea id="output" readonly></textarea>
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="panel-title">Set Selection</div>
+
+      <div class="input-row">
+        <div class="field">
+          <label for="set-input">Set Code</label>
+          <input type="text" id="set-input" placeholder="e.g. sos, dsk, blb…" maxlength="10" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <button class="btn btn-primary" id="fetch-btn" onclick="fetchSet()">Fetch Set</button>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-dot idle" id="status-dot"></div>
+        <span class="status-text" id="status-text">Enter a set code and fetch to load the card pool.</span>
+      </div>
+
+      <div class="stats-row" id="stats-row" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="panel-title">Booster Pack</div>
+
+      <div class="pack-area" id="pack-area">
+        <div class="pack-header">
+          <div>
+            <div class="pack-title" id="pack-title">Loading…</div>
+            <div class="pack-subtitle" id="pack-subtitle"></div>
+          </div>
+          <div class="pack-actions">
+            <button class="btn btn-secondary" onclick="generatePack()">↺ New Pack</button>
+            <button class="btn btn-primary" onclick="copyPack()">Copy to Clipboard</button>
+          </div>
+        </div>
+        <ul class="card-list" id="card-list"></ul>
+      </div>
+
+      <div id="pack-placeholder" style="color: var(--text-muted); font-style: italic; font-size: 0.92rem; text-align: center; padding: 1.5rem 0;">
+        Fetch a set to generate your first booster pack.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-// ======= PASTE YOUR CSV DATA HERE =======
-const csvData = `name,CMC,Type,Color,Set,Collector Number,Rarity,Color Category,status,Finish,board,maybeboard,image URL,image Back URL,tags,Notes,MTGO ID,Custom,Voucher
-"Letter of Acceptance",3,"Artifact",,"stx","256",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89019,false,false
-"Environmental Sciences",2,"Sorcery - Lesson",,"stx","1",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88477,false,false
-"Environmental Sciences",2,"Sorcery - Lesson",,"stx","1",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88477,false,false
-"Expanded Anatomy",3,"Sorcery - Lesson",,"stx","2",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88479,false,false
-"Expanded Anatomy",3,"Sorcery - Lesson",,"stx","2",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88479,false,false
-"Introduction to Annihilation",5,"Sorcery - Lesson",,"stx","3",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88481,false,false
-"Introduction to Annihilation",5,"Sorcery - Lesson",,"stx","3",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88481,false,false
-"Introduction to Prophecy",3,"Sorcery - Lesson",,"stx","4",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88483,false,false
-"Introduction to Prophecy",3,"Sorcery - Lesson",,"stx","4",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88483,false,false
-"Mascot Exhibition",7,"Sorcery - Lesson",,"stx","5",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88485,false,false
-"Mascot Exhibition",7,"Sorcery - Lesson",,"stx","5",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88485,false,false
-"Spell Satchel",2,"Artifact",,"stx","258",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89023,false,false
-"Wandering Archaic",5,"Creature - Avatar",,"stx","6",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88487,false,false
-"Biblioplex Assistant",4,"Artifact Creature - Gargoyle",,"stx","251",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89009,false,false
-"Campus Guide",2,"Artifact Creature - Golem",,"stx","252",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89011,false,false
-"Codie, Vociferous Codex",3,"Legendary Artifact Creature - Construct",BGRUW,"stx","253",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89013,false,false
-"Cogwork Archivist",6,"Artifact Creature - Construct",,"stx","254",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89015,false,false
-"Excavated Wall",1,"Artifact Creature - Wall",,"stx","255",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89017,false,false
-"Reflective Golem",3,"Artifact Creature - Golem",,"stx","257",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89021,false,false
-"Strixhaven Stadium",3,"Artifact",,"stx","259",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89025,false,false
-"Team Pennant",1,"Artifact - Equipment",,"stx","260",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89027,false,false
-"Zephyr Boots",1,"Artifact - Equipment",,"stx","261",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89029,false,false
-"Access Tunnel",0,"Land",,"stx","262",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89031,false,false
-"Archway Commons",0,"Land",,"stx","263",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89033,false,false
-"The Biblioplex",0,"Land",,"stx","264",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89035,false,false
-"Hall of Oracles",0,"Land",,"stx","267",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89041,false,false
-"Frostboil Snarl",0,"Land",RU,"stx","265",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89037,false,false
-"Furycalm Snarl",0,"Land",RW,"stx","266",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89039,false,false
-"Necroblossom Snarl",0,"Land",BG,"stx","269",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89045,false,false
-"Shineshadow Snarl",0,"Land",BW,"stx","272",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89051,false,false
-"Vineglimmer Snarl",0,"Land",GU,"stx","274",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89055,false,false
-"Lorehold Campus",0,"Land",RW,"stx","268",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89043,false,false
-"Prismari Campus",0,"Land",RU,"stx","270",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89047,false,false
-"Quandrix Campus",0,"Land",GU,"stx","271",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89049,false,false
-"Silverquill Campus",0,"Land",BW,"stx","273",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89053,false,false
-"Witherbloom Campus",0,"Land",BG,"stx","275",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89057,false,false
-"Silverquill Campus",0,"Land",BW,"stx","273",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89053,false,false
-"Prismari Campus",0,"Land",RU,"stx","270",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89047,false,false
-"Witherbloom Campus",0,"Land",BG,"stx","275",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89057,false,false
-"Lorehold Campus",0,"Land",RW,"stx","268",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89043,false,false
-"Shineshadow Snarl",0,"Land",BW,"stx","272",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89051,false,false
-"Frostboil Snarl",0,"Land",RU,"stx","265",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89037,false,false
-"Necroblossom Snarl",0,"Land",BG,"stx","269",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89045,false,false
-"Furycalm Snarl",0,"Land",RW,"stx","266",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89039,false,false
-"Vineglimmer Snarl",0,"Land",GU,"stx","274",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89055,false,false
-"Quandrix Campus",0,"Land",GU,"stx","271",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89049,false,false
-"Academic Probation",2,"Sorcery - Lesson",W,"stx","7",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88491,false,false
-"Ageless Guardian",2,"Creature - Spirit Soldier",W,"stx","8",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88493,false,false
-"Beaming Defiance",2,"Instant",W,"stx","9",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88495,false,false
-"Clever Lumimancer",1,"Creature - Human Wizard",W,"stx","10",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88497,false,false
-"Combat Professor",4,"Creature - Bird Cleric",W,"stx","11",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88499,false,false
-"Defend the Campus",4,"Instant",W,"stx","12",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88501,false,false
-"Detention Vortex",1,"Enchantment - Aura",W,"stx","13",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88503,false,false
-"Devastating Mastery",6,"Sorcery",W,"stx","14",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88505,false,false
-"Dueling Coach",4,"Creature - Human Monk",W,"stx","15",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88507,false,false
-"Eager First-Year",2,"Creature - Human Wizard",W,"stx","16",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88509,false,false
-"Elite Spellbinder",3,"Creature - Human Cleric",W,"stx","17",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88511,false,false
-"Expel",3,"Instant",W,"stx","18",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88513,false,false
-"Guiding Voice",1,"Sorcery",W,"stx","19",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88515,false,false
-"Leonin Lightscribe",2,"Creature - Cat Cleric",W,"stx","20",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88517,false,false
-"Mavinda, Students' Advocate",3,"Legendary Creature - Bird Advisor",W,"stx","21",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88519,false,false
-"Pilgrim of the Ages",3,"Creature - Spirit",W,"stx","22",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88521,false,false
-"Pillardrop Rescuer",5,"Creature - Spirit Cleric",W,"stx","23",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88523,false,false
-"Professor of Symbology",2,"Creature - Kor Cleric",W,"stx","24",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88525,false,false
-"Secret Rendezvous",3,"Sorcery",W,"stx","26",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88529,false,false
-"Semester's End",4,"Instant",W,"stx","27",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88531,false,false
-"Show of Confidence",2,"Instant",W,"stx","28",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88533,false,false
-"Sparring Regimen",3,"Enchantment",W,"stx","29",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88535,false,false
-"Star Pupil",1,"Creature - Human Wizard",W,"stx","30",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88537,false,false
-"Stonebinder's Familiar",1,"Creature - Spirit Dog",W,"stx","31",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88539,false,false
-"Stonerise Spirit",2,"Creature - Spirit Bird",W,"stx","32",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88541,false,false
-"Strict Proctor",2,"Creature - Spirit Cleric",W,"stx","33",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88543,false,false
-"Study Break",2,"Instant",W,"stx","34",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88545,false,false
-"Thunderous Orator",2,"Creature - Kor Wizard",W,"stx","35",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88547,false,false
-"Reduce to Memory",3,"Sorcery - Lesson",W,"stx","25",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88527,false,false
-"Arcane Subtraction",2,"Instant",U,"stx","36",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88549,false,false
-"Archmage Emeritus",4,"Creature - Human Wizard",U,"stx","37",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88551,false,false
-"Burrog Befuddler",2,"Creature - Frog Wizard",U,"stx","38",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88553,false,false
-"Bury in Books",5,"Instant",U,"stx","39",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88555,false,false
-"Curate",2,"Instant",U,"stx","40",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88557,false,false
-"Divide by Zero",3,"Instant",U,"stx","41",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88559,false,false
-"Dream Strix",3,"Creature - Bird Illusion",U,"stx","42",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88561,false,false
-"Frost Trickster",3,"Creature - Bird Wizard",U,"stx","43",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88563,false,false
-"Ingenious Mastery",3,"Sorcery",U,"stx","44",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88565,false,false
-"Kelpie Guide",3,"Creature - Beast",U,"stx","45",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88567,false,false
-"Mentor's Guidance",3,"Sorcery",U,"stx","46",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88569,false,false
-"Mercurial Transformation",2,"Sorcery - Lesson",U,"stx","47",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88571,false,false
-"Multiple Choice",1,"Sorcery",U,"stx","48",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88573,false,false
-"Pop Quiz",3,"Instant",U,"stx","49",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88575,false,false
-"Reject",2,"Instant",U,"stx","50",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88577,false,false
-"Resculpt",2,"Instant",U,"stx","51",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88579,false,false
-"Serpentine Curve",4,"Sorcery",U,"stx","52",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88581,false,false
-"Snow Day",6,"Instant",U,"stx","53",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88583,false,false
-"Solve the Equation",3,"Sorcery",U,"stx","54",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88585,false,false
-"Soothsayer Adept",2,"Creature - Merfolk Wizard",U,"stx","55",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88587,false,false
-"Symmetry Sage",1,"Creature - Human Wizard",U,"stx","56",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88589,false,false
-"Teachings of the Archaics",3,"Sorcery - Lesson",U,"stx","57",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88591,false,false
-"Tempted by the Oriq",4,"Sorcery",U,"stx","58",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88593,false,false
-"Test of Talents",2,"Instant",U,"stx","59",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88595,false,false
-"Vortex Runner",3,"Creature - Human Wizard",U,"stx","60",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88597,false,false
-"Waterfall Aerialist",4,"Creature - Djinn Wizard",U,"stx","61",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88599,false,false
-"Wormhole Serpent",5,"Creature - Serpent",U,"stx","62",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88601,false,false
-"Arrogant Poet",2,"Creature - Human Warlock",B,"stx","63",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88603,false,false
-"Baleful Mastery",4,"Instant",B,"stx","64",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88605,false,false
-"Brackish Trudge",3,"Creature - Fungus Beast",B,"stx","65",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88607,false,false
-"Callous Bloodmage",3,"Creature - Vampire Warlock",B,"stx","66",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88609,false,false
-"Confront the Past",1,"Sorcery - Lesson",B,"stx","67",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88611,false,false
-"Crushing Disappointment",4,"Instant",B,"stx","68",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88613,false,false
-"Essence Infusion",2,"Sorcery",B,"stx","69",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88615,false,false
-"Eyetwitch",1,"Creature - Eye Bat",B,"stx","70",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88617,false,false
-"Flunk",2,"Instant",B,"stx","71",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88619,false,false
-"Go Blank",3,"Sorcery",B,"stx","72",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88621,false,false
-"Hunt for Specimens",2,"Sorcery",B,"stx","73",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88623,false,false
-"Lash of Malice",1,"Instant",B,"stx","74",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88625,false,false
-"Leech Fanatic",2,"Creature - Human Warlock",B,"stx","75",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88627,false,false
-"Mage Hunter",4,"Creature - Horror",B,"stx","76",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88629,false,false
-"Mage Hunters' Onslaught",4,"Sorcery",B,"stx","77",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88631,false,false
-"Necrotic Fumes",3,"Sorcery - Lesson",B,"stx","78",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88633,false,false
-"Novice Dissector",4,"Creature - Troll Warlock",B,"stx","79",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88635,false,false
-"Oriq Loremage",4,"Creature - Human Warlock",B,"stx","80",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88637,false,false
-"Plumb the Forbidden",2,"Instant",B,"stx","81",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88639,false,false
-"Poet's Quill",2,"Artifact - Equipment",B,"stx","82",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88641,false,false
-"Professor Onyx",6,"Legendary Planeswalker - Liliana",B,"stx","83",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88643,false,false
-"Professor's Warning",1,"Instant",B,"stx","84",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88645,false,false
-"Promising Duskmage",3,"Creature - Human Warlock",B,"stx","85",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88647,false,false
-"Sedgemoor Witch",3,"Creature - Human Warlock",B,"stx","86",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88649,false,false
-"Specter of the Fens",4,"Creature - Specter",B,"stx","87",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88651,false,false
-"Tenured Inkcaster",5,"Creature - Vampire Warlock",B,"stx","88",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88653,false,false
-"Umbral Juke",3,"Instant",B,"stx","89",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88655,false,false
-"Unwilling Ingredient",1,"Creature - Frog",B,"stx","90",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88657,false,false
-"Academic Dispute",1,"Instant",R,"stx","91",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88659,false,false
-"Ardent Dustspeaker",5,"Creature - Minotaur Shaman",R,"stx","92",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88661,false,false
-"Blood Age General",2,"Creature - Spirit Warrior",R,"stx","93",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88663,false,false
-"Conspiracy Theorist",2,"Creature - Human Shaman",R,"stx","94",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88665,false,false
-"Crackle with Power",2,"Sorcery",R,"stx","95",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88667,false,false
-"Draconic Intervention",4,"Sorcery",R,"stx","96",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88669,false,false
-"Dragon's Approach",3,"Sorcery",R,"stx","97",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88671,false,false
-"Efreet Flamepainter",4,"Creature - Efreet Shaman",R,"stx","98",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88673,false,false
-"Enthusiastic Study",3,"Instant",R,"stx","99",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88675,false,false
-"Explosive Welcome",8,"Instant",R,"stx","100",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88677,false,false
-"Fervent Mastery",5,"Sorcery",R,"stx","101",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88679,false,false
-"First Day of Class",2,"Instant",R,"stx","102",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88681,false,false
-"Fuming Effigy",4,"Creature - Spirit",R,"stx","103",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88683,false,false
-"Grinning Ignus",3,"Creature - Elemental",R,"stx","104",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88685,false,false
-"Hall Monitor",1,"Creature - Lizard Shaman",R,"stx","105",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88687,false,false
-"Heated Debate",3,"Instant",R,"stx","106",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88689,false,false
-"Igneous Inspiration",3,"Sorcery",R,"stx","107",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88691,false,false
-"Illustrious Historian",2,"Creature - Human Shaman",R,"stx","109",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88695,false,false
-"Mascot Interception",4,"Sorcery",R,"stx","110",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88697,false,false
-"Pigment Storm",5,"Sorcery",R,"stx","111",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88699,false,false
-"Pillardrop Warden",4,"Creature - Spirit Dwarf",R,"stx","112",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88701,false,false
-"Retriever Phoenix",4,"Creature - Phoenix",R,"stx","113",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88703,false,false
-"Start from Scratch",3,"Sorcery - Lesson",R,"stx","114",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88705,false,false
-"Storm-Kiln Artist",4,"Creature - Dwarf Shaman",R,"stx","115",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88707,false,false
-"Sudden Breakthrough",2,"Instant",R,"stx","116",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88709,false,false
-"Tome Shredder",3,"Creature - Wolf",R,"stx","117",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88711,false,false
-"Twinscroll Shaman",3,"Creature - Dwarf Shaman",R,"stx","118",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88713,false,false
-"Illuminate History",4,"Sorcery - Lesson",R,"stx","108",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88693,false,false
-"Accomplished Alchemist",4,"Creature - Elf Druid",G,"stx","119",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88715,false,false
-"Basic Conjuration",3,"Sorcery - Lesson",G,"stx","120",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88717,false,false
-"Bayou Groff",2,"Creature - Plant Dog",G,"stx","121",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88719,false,false
-"Big Play",2,"Instant",G,"stx","122",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88721,false,false
-"Bookwurm",8,"Creature - Wurm",G,"stx","123",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88723,false,false
-"Charge Through",1,"Instant",G,"stx","124",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88725,false,false
-"Containment Breach",3,"Sorcery - Lesson",G,"stx","125",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88727,false,false
-"Dragonsguard Elite",2,"Creature - Human Druid",G,"stx","127",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88731,false,false
-"Ecological Appreciation",3,"Sorcery",G,"stx","128",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88733,false,false
-"Emergent Sequence",2,"Sorcery",G,"stx","129",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88735,false,false
-"Exponential Growth",2,"Sorcery",G,"stx","130",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88737,false,false
-"Field Trip",3,"Sorcery",G,"stx","131",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88739,false,false
-"Fortifying Draught",1,"Instant",G,"stx","132",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88741,false,false
-"Gnarled Professor",4,"Creature - Treefolk Druid",G,"stx","133",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88743,false,false
-"Honor Troll",3,"Creature - Troll Druid",G,"stx","134",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88745,false,false
-"Karok Wrangler",5,"Creature - Elf Druid",G,"stx","135",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88747,false,false
-"Leyline Invocation",6,"Sorcery",G,"stx","136",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88749,false,false
-"Mage Duel",3,"Sorcery",G,"stx","137",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88751,false,false
-"Master Symmetrist",4,"Creature - Rhino Druid",G,"stx","138",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88753,false,false
-"Overgrown Arch",2,"Creature - Plant Wall",G,"stx","139",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88755,false,false
-"Professor of Zoomancy",4,"Creature - Bear Druid",G,"stx","140",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88757,false,false
-"Reckless Amplimancer",2,"Creature - Elf Druid",G,"stx","141",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88759,false,false
-"Scurrid Colony",2,"Creature - Squirrel",G,"stx","142",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88761,false,false
-"Spined Karok",3,"Creature - Crocodile",G,"stx","143",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88763,false,false
-"Springmane Cervin",3,"Creature - Elk",G,"stx","144",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88765,false,false
-"Tangletrap",2,"Instant",G,"stx","145",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88767,false,false
-"Verdant Mastery",6,"Sorcery",G,"stx","146",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88769,false,false
-"Devouring Tendrils",2,"Sorcery",G,"stx","126",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88729,false,false
-"Extus, Oriq Overlord",4,"Legendary Creature - Human Warlock",BRW,"stx","149",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88779,false,false
-"Selfless Glyphweaver",3,"Creature - Human Cleric",BW,"stx","157",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88811,false,false
-"Shaile, Dean of Radiance",2,"Legendary Creature - Bird Cleric",BW,"stx","158",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88815,false,false
-"Blot Out the Sky",2,"Sorcery",BW,"stx","167",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88841,false,false
-"Closing Statement",5,"Instant",BW,"stx","169",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88845,false,false
-"Dramatic Finale",4,"Enchantment",BW,"stx","180",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88867,false,false
-"Exhilarating Elocution",4,"Sorcery",BW,"stx","185",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88877,false,false
-"Fracture",2,"Instant",BW,"stx","188",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88883,false,false
-"Humiliate",2,"Sorcery",BW,"stx","193",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88893,false,false
-"Inkling Summoning",3,"Sorcery - Lesson",BW,"stx","195",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88897,false,false
-"Inkling Summoning",3,"Sorcery - Lesson",BW,"stx","195",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88897,false,false
-"Killian, Ink Duelist",2,"Legendary Creature - Human Warlock",BW,"stx","197",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88901,false,false
-"Owlin Shieldmage",5,"Creature - Bird Warlock",BW,"stx","210",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88927,false,false
-"Rise of Extus",6,"Sorcery",BW,"stx","226",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88959,false,false
-"Shadewing Laureate",3,"Creature - Human Warlock",BW,"stx","229",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88965,false,false
-"Shadrix Silverquill",5,"Legendary Creature - Elder Dragon",BW,"stx","280",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",-1,false,false
-"Silverquill Apprentice",2,"Creature - Human Warlock",BW,"stx","231",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88969,false,false
-"Silverquill Command",4,"Sorcery",BW,"stx","232",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88971,false,false
-"Silverquill Pledgemage",3,"Creature - Vampire Cleric",BW,"stx","233",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88973,false,false
-"Silverquill Pledgemage",3,"Creature - Vampire Cleric",BW,"stx","233",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88973,false,false
-"Silverquill Silencer",2,"Creature - Human Cleric",BW,"stx","234",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88975,false,false
-"Spiteful Squad",4,"Creature - Human Warlock",BW,"stx","237",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88981,false,false
-"Vanishing Verse",2,"Instant",BW,"stx","244",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88995,false,false
-"Rowan, Scholar of Sparks",3,"Legendary Planeswalker - Rowan",RU,"stx","156",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88807,false,false
-"Torrent Sculptor",4,"Creature - Merfolk Wizard",RU,"stx","159",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88819,false,false
-"Uvilda, Dean of Perfection",3,"Legendary Creature - Djinn Wizard",RU,"stx","160",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88823,false,false
-"Creative Outburst",7,"Instant",RU,"stx","171",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88849,false,false
-"Culmination of Studies",2,"Sorcery",RU,"stx","173",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88853,false,false
-"Elemental Expressionist",4,"Creature - Orc Wizard",RU,"stx","181",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88869,false,false
-"Elemental Masterpiece",7,"Sorcery",RU,"stx","182",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88871,false,false
-"Elemental Summoning",5,"Sorcery - Lesson",RU,"stx","183",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88873,false,false
-"Elemental Summoning",5,"Sorcery - Lesson",RU,"stx","183",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88873,false,false
-"Expressive Iteration",2,"Sorcery",RU,"stx","186",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88879,false,false
-"Galazeth Prismari",4,"Legendary Creature - Elder Dragon",RU,"stx","189",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88885,false,false
-"Maelstrom Muse",4,"Creature - Djinn Wizard",RU,"stx","202",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88911,false,false
-"Magma Opus",8,"Instant",RU,"stx","203",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88913,false,false
-"Oggyar Battle-Seer",5,"Creature - Ogre Shaman",RU,"stx","209",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88925,false,false
-"Practical Research",5,"Instant",RU,"stx","212",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88931,false,false
-"Prismari Apprentice",2,"Creature - Human Shaman",RU,"stx","213",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88933,false,false
-"Prismari Command",3,"Instant",RU,"stx","214",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88935,false,false
-"Prismari Pledgemage",2,"Creature - Orc Wizard",RU,"stx","215",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88937,false,false
-"Prismari Pledgemage",2,"Creature - Orc Wizard",RU,"stx","215",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88937,false,false
-"Rootha, Mercurial Artist",3,"Legendary Creature - Orc Shaman",RU,"stx","227",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88961,false,false
-"Spectacle Mage",3,"Creature - Bird Shaman",RU,"stx","235",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88977,false,false
-"Teach by Example",2,"Instant",RU,"stx","241",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88989,false,false
-"Blex, Vexing Pest",3,"Legendary Creature - Pest",BG,"stx","148",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88775,false,false
-"Pestilent Cauldron",3,"Artifact",BG,"stx","154",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88799,false,false
-"Valentin, Dean of the Vein",1,"Legendary Creature - Vampire Warlock",BG,"stx","161",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88827,false,false
-"Beledros Witherbloom",7,"Legendary Creature - Elder Dragon",BG,"stx","163",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88833,false,false
-"Cram Session",2,"Sorcery",BG,"stx","170",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88847,false,false
-"Culling Ritual",4,"Sorcery",BG,"stx","172",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88851,false,false
-"Daemogoth Titan",4,"Creature - Demon",BG,"stx","174",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88855,false,false
-"Daemogoth Woe-Eater",4,"Creature - Demon",BG,"stx","175",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88857,false,false
-"Deadly Brew",2,"Sorcery",BG,"stx","176",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88859,false,false
-"Dina, Soul Steeper",2,"Legendary Creature - Dryad Druid",BG,"stx","178",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88863,false,false
-"Harness Infinity",7,"Instant",BG,"stx","191",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88889,false,false
-"Infuse with Vitality",2,"Instant",BG,"stx","194",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88895,false,false
-"Moldering Karok",4,"Creature - Zombie Crocodile",BG,"stx","206",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88919,false,false
-"Mortality Spear",4,"Instant",BG,"stx","207",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88921,false,false
-"Pest Summoning",3,"Sorcery - Lesson",BG,"stx","211",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88929,false,false
-"Pest Summoning",3,"Sorcery - Lesson",BG,"stx","211",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88929,false,false
-"Rushed Rebirth",2,"Instant",BG,"stx","228",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88963,false,false
-"Tend the Pests",2,"Instant",BG,"stx","242",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88991,false,false
-"Witherbloom Apprentice",2,"Creature - Human Druid",BG,"stx","247",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89001,false,false
-"Witherbloom Command",2,"Sorcery",BG,"stx","248",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",89003,false,false
-"Witherbloom Pledgemage",5,"Creature - Treefolk Warlock",BG,"stx","249",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89005,false,false
-"Witherbloom Pledgemage",5,"Creature - Treefolk Warlock",BG,"stx","249",common,null,Owned,Non-foil,mainboard,false,,,"STX","",89005,false,false
-"Blood Researcher",3,"Creature - Vampire Druid",BG,"stx","166",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88839,false,false
-"Flamescroll Celebrant",2,"Creature - Human Shaman",RW,"stx","150",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88783,false,false
-"Mila, Crafty Companion",3,"Legendary Creature - Fox",RW,"stx","277",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",-1,false,false
-"Plargg, Dean of Chaos",2,"Legendary Creature - Orc Shaman",RW,"stx","155",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88803,false,false
-"Blade Historian",4,"Creature - Human Cleric",RW,"stx","165",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88837,false,false
-"Hofri Ghostforge",5,"Legendary Creature - Dwarf Cleric",RW,"stx","192",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88891,false,false
-"Lorehold Apprentice",2,"Creature - Human Cleric",RW,"stx","198",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88903,false,false
-"Lorehold Command",5,"Instant",RW,"stx","199",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88905,false,false
-"Lorehold Excavation",2,"Enchantment",RW,"stx","200",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88907,false,false
-"Lorehold Pledgemage",3,"Creature - Kor Shaman",RW,"stx","201",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88909,false,false
-"Lorehold Pledgemage",3,"Creature - Kor Shaman",RW,"stx","201",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88909,false,false
-"Make Your Mark",1,"Instant",RW,"stx","204",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88915,false,false
-"Quintorius, Field Historian",5,"Legendary Creature - Elephant Cleric",RW,"stx","220",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88947,false,false
-"Radiant Scrollwielder",4,"Creature - Dwarf Cleric",RW,"stx","221",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88949,false,false
-"Reconstruct History",4,"Sorcery",RW,"stx","222",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88951,false,false
-"Relic Sloth",5,"Creature - Beast",RW,"stx","223",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88953,false,false
-"Returned Pastcaller",6,"Creature - Spirit Cleric",RW,"stx","224",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88955,false,false
-"Rip Apart",2,"Sorcery",RW,"stx","225",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88957,false,false
-"Spirit Summoning",3,"Sorcery - Lesson",RW,"stx","236",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88979,false,false
-"Spirit Summoning",3,"Sorcery - Lesson",RW,"stx","236",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88979,false,false
-"Stonebound Mentor",3,"Creature - Spirit Advisor",RW,"stx","239",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88985,false,false
-"Thrilling Discovery",2,"Sorcery",RW,"stx","243",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88993,false,false
-"Velomachus Lorehold",7,"Legendary Creature - Elder Dragon",RW,"stx","245",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88997,false,false
-"Venerable Warsinger",3,"Creature - Spirit Cleric",RW,"stx","246",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88999,false,false
-"Kasmina, Enigma Sage",3,"Legendary Planeswalker - Kasmina",GU,"stx","196",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88899,false,false
-"Augmenter Pugilist",3,"Creature - Troll Druid",GU,"stx","147",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88771,false,false
-"Jadzi, Oracle of Arcavios",8,"Legendary Creature - Human Wizard",GU,"stx","151",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88787,false,false
-"Kianne, Dean of Substance",3,"Legendary Creature - Elf Druid",GU,"stx","152",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88791,false,false
-"Aether Helix",5,"Sorcery",GU,"stx","162",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88831,false,false
-"Biomathematician",3,"Creature - Human Wizard",GU,"stx","164",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88835,false,false
-"Body of Research",6,"Sorcery",GU,"stx","168",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88843,false,false
-"Decisive Denial",2,"Instant",GU,"stx","177",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88861,false,false
-"Double Major",2,"Instant",GU,"stx","179",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88865,false,false
-"Eureka Moment",4,"Instant",GU,"stx","184",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88875,false,false
-"Fractal Summoning",2,"Sorcery - Lesson",GU,"stx","187",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88881,false,false
-"Fractal Summoning",2,"Sorcery - Lesson",GU,"stx","187",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88881,false,false
-"Golden Ratio",3,"Sorcery",GU,"stx","190",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88887,false,false
-"Manifestation Sage",4,"Creature - Human Wizard",GU,"stx","205",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88917,false,false
-"Needlethorn Drake",2,"Creature - Drake",GU,"stx","208",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88923,false,false
-"Quandrix Apprentice",2,"Creature - Human Wizard",GU,"stx","216",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88939,false,false
-"Quandrix Command",3,"Instant",GU,"stx","217",rare,null,Owned,Non-foil,mainboard,false,,,"STX","",88941,false,false
-"Quandrix Cultivator",4,"Creature - Turtle Druid",GU,"stx","218",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",88943,false,false
-"Quandrix Pledgemage",3,"Creature - Merfolk Druid",GU,"stx","219",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88945,false,false
-"Quandrix Pledgemage",3,"Creature - Merfolk Druid",GU,"stx","219",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88945,false,false
-"Square Up",2,"Instant",GU,"stx","238",common,null,Owned,Non-foil,mainboard,false,,,"STX","",88983,false,false
-"Tanazir Quandrix",5,"Legendary Creature - Elder Dragon",GU,"stx","240",mythic,null,Owned,Non-foil,mainboard,false,,,"STX","",88987,false,false
-"Zimone, Quandrix Prodigy",2,"Legendary Creature - Human Wizard",GU,"stx","250",uncommon,null,Owned,Non-foil,mainboard,false,,,"STX","",89007,false,false
-"Day of Judgment",4,"Sorcery",W,"sta","2",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89061,false,false
-"Defiant Strike",1,"Instant",W,"sta","3",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89063,false,false
-"Divine Gambit",2,"Sorcery",W,"sta","4",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89065,false,false
-"Ephemerate",1,"Instant",W,"sta","5",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89067,false,false
-"Gift of Estates",2,"Sorcery",W,"sta","6",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89069,false,false
-"Gods Willing",1,"Instant",W,"sta","7",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89071,false,false
-"Mana Tithe",1,"Instant",W,"sta","8",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89073,false,false
-"Revitalize",2,"Instant",W,"sta","9",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89075,false,false
-"Swords to Plowshares",1,"Instant",W,"sta","10",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89077,false,false
-"Teferi's Protection",3,"Instant",W,"sta","11",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89079,false,false
-"Blue Sun's Zenith",3,"Instant",U,"sta","12",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89081,false,false
-"Brainstorm",1,"Instant",U,"sta","13",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89083,false,false
-"Compulsive Research",3,"Sorcery",U,"sta","14",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89085,false,false
-"Counterspell",2,"Instant",U,"sta","15",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89087,false,false
-"Memory Lapse",2,"Instant",U,"sta","16",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89089,false,false
-"Mind's Desire",6,"Sorcery",U,"sta","17",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89091,false,false
-"Negate",2,"Instant",U,"sta","18",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89093,false,false
-"Opt",1,"Instant",U,"sta","19",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89095,false,false
-"Strategic Planning",2,"Sorcery",U,"sta","20",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89097,false,false
-"Tezzeret's Gambit",4,"Sorcery",U,"sta","21",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89099,false,false
-"Time Warp",5,"Sorcery",U,"sta","22",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89101,false,false
-"Whirlwind Denial",3,"Instant",U,"sta","23",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89103,false,false
-"Agonizing Remorse",2,"Sorcery",B,"sta","24",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89105,false,false
-"Crux of Fate",5,"Sorcery",B,"sta","25",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89107,false,false
-"Dark Ritual",1,"Instant",B,"sta","26",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89109,false,false
-"Demonic Tutor",2,"Sorcery",B,"sta","27",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89111,false,false
-"Doom Blade",2,"Instant",B,"sta","28",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89113,false,false
-"Duress",1,"Sorcery",B,"sta","29",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89115,false,false
-"Eliminate",2,"Instant",B,"sta","30",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89117,false,false
-"Inquisition of Kozilek",1,"Sorcery",B,"sta","31",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89119,false,false
-"Sign in Blood",2,"Sorcery",B,"sta","32",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89121,false,false
-"Tainted Pact",2,"Instant",B,"sta","33",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89123,false,false
-"Tendrils of Agony",4,"Sorcery",B,"sta","34",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89125,false,false
-"Village Rites",1,"Instant",B,"sta","35",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89127,false,false
-"Chaos Warp",3,"Instant",R,"sta","36",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89129,false,false
-"Claim the Firstborn",1,"Sorcery",R,"sta","37",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89131,false,false
-"Faithless Looting",1,"Sorcery",R,"sta","38",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89133,false,false
-"Grapeshot",2,"Sorcery",R,"sta","39",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89135,false,false
-"Increasing Vengeance",2,"Instant",R,"sta","40",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89137,false,false
-"Infuriate",1,"Instant",R,"sta","41",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89139,false,false
-"Lightning Bolt",1,"Instant",R,"sta","42",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89141,false,false
-"Mizzix's Mastery",4,"Sorcery",R,"sta","43",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89143,false,false
-"Shock",1,"Instant",R,"sta","44",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89145,false,false
-"Stone Rain",3,"Sorcery",R,"sta","45",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89147,false,false
-"Thrill of Possibility",2,"Instant",R,"sta","46",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89149,false,false
-"Urza's Rage",3,"Instant",R,"sta","47",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89151,false,false
-"Abundant Harvest",1,"Sorcery",G,"sta","48",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89153,false,false
-"Adventurous Impulse",1,"Sorcery",G,"sta","49",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89155,false,false
-"Channel",2,"Sorcery",G,"sta","50",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89157,false,false
-"Cultivate",3,"Sorcery",G,"sta","51",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89159,false,false
-"Harmonize",4,"Sorcery",G,"sta","52",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89161,false,false
-"Krosan Grip",3,"Instant",G,"sta","53",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89163,false,false
-"Natural Order",4,"Sorcery",G,"sta","54",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89165,false,false
-"Primal Command",5,"Sorcery",G,"sta","55",mythic,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89167,false,false
-"Regrowth",2,"Sorcery",G,"sta","56",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89169,false,false
-"Snakeskin Veil",1,"Instant",G,"sta","57",uncommon,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89171,false,false
-"Weather the Storm",2,"Instant",G,"sta","58",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89173,false,false
-"Despark",2,"Instant",BW,"sta","59",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89175,false,false
-"Electrolyze",3,"Instant",RU,"sta","60",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89177,false,false
-"Growth Spiral",2,"Instant",GU,"sta","61",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89179,false,false
-"Lightning Helix",2,"Instant",RW,"sta","62",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89181,false,false
-"Putrefy",3,"Instant",BG,"sta","63",rare,null,Owned,Non-foil,mainboard,false,,,"Mystical Archive","",89183,false,false
-`;
+let cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+let setCode = '';
+let setName = '';
 
-// ======= PARSE CSV =======
-function parseCSV(data) {
-  const lines = data.trim().split("\n");
-  const headers = lines[0].split(",");
+const PROXY = 'https://corsproxy.io/?url=';
 
-  return lines.slice(1).map(line => {
-    const values = line.split(",");
-    let obj = {};
-    headers.forEach((h, i) => {
-      let value = values[i]?.trim();
+const rarityMap = {
+  'mythic rare': 'mythic', 'mythic': 'mythic',
+  'rare': 'rare',
+  'uncommon': 'uncommon',
+  'common': 'common',
+  'basic land': 'land', 'land': 'land',
+  'special': 'special', 'bonus': 'special', 'timeshifted': 'special'
+};
 
-      // 🔧 REMOVE surrounding quotes
-      if (value?.startsWith('"') && value?.endsWith('"')) {
-        value = value.slice(1, -1);
+function setStatus(state, msg) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + state;
+  document.getElementById('status-text').textContent = msg;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function fetchSet() {
+  const code = document.getElementById('set-input').value.trim().toLowerCase();
+  if (!code) { setStatus('err', 'Please enter a set code.'); return; }
+
+  setStatus('loading', `Fetching set "${code.toUpperCase()}"…`);
+  document.getElementById('fetch-btn').disabled = true;
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('pack-area').classList.remove('visible');
+  document.getElementById('pack-placeholder').style.display = 'block';
+
+  const url = `https://mtg.wtf/card?q=set%3A${encodeURIComponent(code)}`;
+  const proxyUrl = PROXY + encodeURIComponent(url);
+
+  try {
+    const resp = await fetch(proxyUrl, {
+      headers: {
+        'Cookie': 'default_view=checklist',
+        'X-Requested-With': 'XMLHttpRequest'
       }
-
-      obj[h.trim()] = value;
     });
-    return obj;
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const html = await resp.text();
+    parseCards(html, code);
+  } catch (e) {
+    // Try alternative approach via direct fetch with cookie header
+    try {
+      const resp2 = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, {
+        headers: { 'Cookie': 'default_view=checklist' }
+      });
+      const html = await resp2.text();
+      parseCards(html, code);
+    } catch (e2) {
+      setStatus('err', `Failed to fetch: ${e2.message}. Try a CORS proxy or local server.`);
+      document.getElementById('fetch-btn').disabled = false;
+    }
+  }
+}
+
+function parseCards(html, code) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Try checklist table first
+  let cards = parseChecklist(doc);
+
+  // Fallback: parse card entries from the card view
+  if (cards.length === 0) {
+    cards = parseCardView(doc);
+  }
+
+  if (cards.length === 0) {
+    setStatus('err', `No cards found for "${code.toUpperCase()}". Check the set code.`);
+    document.getElementById('fetch-btn').disabled = false;
+    return;
+  }
+
+  // Infer set name
+  const h1 = doc.querySelector('h1');
+  setName = h1 ? h1.textContent.trim().replace(/^\d+ cards found/, '').trim() : code.toUpperCase();
+  setCode = code.toUpperCase();
+
+  // Bucket by rarity
+  cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+
+  cards.forEach(c => {
+    const bucket = rarityMap[c.rarity.toLowerCase()] || 'common';
+    cardPool[bucket].push(c);
   });
+
+  const total = cards.length;
+  setStatus('ok', `${total} cards loaded for ${setCode}.`);
+  showStats();
+  generatePack();
+  document.getElementById('fetch-btn').disabled = false;
 }
 
-const cards = parseCSV(csvData);
+function parseChecklist(doc) {
+  const cards = [];
+  const tables = doc.querySelectorAll('table');
 
-// ======= CREATE POOLS =======
-const commons = cards.filter(c => c.Rarity?.toLowerCase() === "common");
-const uncommons = cards.filter(c => c.Rarity?.toLowerCase() === "uncommon");
-const rares = cards.filter(c => c.Rarity?.toLowerCase() === "rare");
-const mythics = cards.filter(c => c.Rarity?.toLowerCase().includes("mythic"));
-const lands = cards.filter(c => c.Type?.includes("Land"));
+  for (const table of tables) {
+    const headers = [...table.querySelectorAll('th')].map(th => th.textContent.trim().toLowerCase());
+    if (!headers.some(h => h.includes('name') || h.includes('rarity'))) continue;
 
-// ======= RANDOM PICK =======
-function pickRandom(array, n = 1) {
-  let shuffled = [...array].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, n);
+    const colIdx = {};
+    headers.forEach((h,i) => {
+      if (h.includes('number') || h === '#') colIdx.number = i;
+      if (h.includes('name')) colIdx.name = i;
+      if (h.includes('cost') || h.includes('mana')) colIdx.cost = i;
+      if (h.includes('type')) colIdx.type = i;
+      if (h.includes('rarity')) colIdx.rarity = i;
+      if (h.includes('artist')) colIdx.artist = i;
+    });
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      if (cells.length < 2) return;
+      const get = (key) => colIdx[key] !== undefined && cells[colIdx[key]] ? cells[colIdx[key]].textContent.trim() : '';
+      const rarity = get('rarity');
+      const name = get('name');
+      if (!name) return;
+      cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity: rarity || 'common', artist: get('artist') });
+    });
+  }
+  return cards;
 }
 
-function pickRare() {
-  return Math.random() < 1/8
-    ? pickRandom(mythics, 1)
-    : pickRandom(rares, 1);
+function parseCardView(doc) {
+  const cards = [];
+  // Parse from the card listing (non-checklist view)
+  const entries = doc.querySelectorAll('h3 a');
+
+  entries.forEach(a => {
+    const parent = a.closest('div, li, section') || a.parentElement?.parentElement;
+    const name = a.textContent.trim();
+    if (!name || name.length < 2) return;
+
+    // Try to find rarity in nearby text
+    const text = parent ? parent.textContent : '';
+    let rarity = 'common';
+    if (/mythic rare/i.test(text)) rarity = 'mythic';
+    else if (/\brare\b/i.test(text)) rarity = 'rare';
+    else if (/uncommon/i.test(text)) rarity = 'uncommon';
+    else if (/basic land/i.test(text)) rarity = 'land';
+
+    // Try to get mana cost from siblings
+    const costEl = a.closest('h3')?.querySelector('span.cost, .mana');
+    const cost = costEl ? costEl.textContent.trim() : '';
+
+    cards.push({ number: '', name, cost, type: '', rarity, artist: '' });
+  });
+
+  return cards;
 }
 
-function pickAny() {
-  return pickRandom(cards, 1);
-}
-
-// ======= GENERATE PACK =======
-function generatePack() {
-  let pack = [
-    ...pickRandom(commons, 7),
-    ...pickRandom(uncommons, 3),
-    ...pickRare(),
-    ...pickRandom(lands, 1),
-    ...pickAny(), // wildcard
-    ...pickAny()  // foil
+function showStats() {
+  const row = document.getElementById('stats-row');
+  const buckets = [
+    { key: 'mythic', label: 'Mythic', cls: 'chip-mythic' },
+    { key: 'rare', label: 'Rare', cls: 'chip-rare' },
+    { key: 'uncommon', label: 'Uncommon', cls: 'chip-uncommon' },
+    { key: 'common', label: 'Common', cls: 'chip-common' },
+    { key: 'land', label: 'Land', cls: 'chip-land' },
+    { key: 'special', label: 'Special', cls: 'chip-special' },
   ];
 
-  // Shuffle pack
-  pack.sort(() => 0.5 - Math.random());
-
-  // Output: one card per line
-  const text = pack.map(c => c.name).join("\n");
-  document.getElementById("output").value = text;
+  row.innerHTML = buckets
+    .filter(b => cardPool[b.key].length > 0)
+    .map(b => `<span class="stat-chip ${b.cls}">${cardPool[b.key].length} ${b.label}</span>`)
+    .join('');
+  row.style.display = 'flex';
 }
 
-// ======= COPY =======
-function copyToClipboard() {
-  const textarea = document.getElementById("output");
-  textarea.select();
-  document.execCommand("copy");
+function pick(arr, n) {
+  const pool = [...arr];
+  const result = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(idx, 1)[0]);
+  }
+  return result;
 }
+
+function generatePack() {
+  const total = Object.values(cardPool).flat().length;
+  if (total === 0) return;
+
+  // Standard MtG booster: 1 rare/mythic, 3 uncommon, 10 common, 1 land (sometimes)
+  // Mythic appears ~1/8 packs
+  const pack = [];
+
+  // Rare/Mythic slot
+  const useMythic = cardPool.mythic.length > 0 && Math.random() < (1/8);
+  if (useMythic) {
+    pack.push(...pick(cardPool.mythic, 1));
+  } else if (cardPool.rare.length > 0) {
+    pack.push(...pick(cardPool.rare, 1));
+  } else if (cardPool.mythic.length > 0) {
+    pack.push(...pick(cardPool.mythic, 1));
+  }
+
+  // Uncommons
+  const uncommonCount = Math.min(3, cardPool.uncommon.length);
+  pack.push(...pick(cardPool.uncommon, uncommonCount));
+
+  // Fill commons up to 14 (standard booster)
+  const slotsLeft = Math.max(0, 14 - pack.length);
+  let commonPool = [...cardPool.common];
+  if (cardPool.land.length > 0) {
+    commonPool = [...commonPool, ...cardPool.land.slice(0, 5)];
+  }
+  pack.push(...pick(commonPool, Math.min(slotsLeft, commonPool.length)));
+
+  // If pack is still small (set has few rarities), pad with whatever is available
+  if (pack.length < 5) {
+    const all = Object.values(cardPool).flat();
+    const alreadyNames = new Set(pack.map(c => c.name));
+    const extras = all.filter(c => !alreadyNames.has(c.name));
+    pack.push(...pick(extras, Math.min(14 - pack.length, extras.length)));
+  }
+
+  renderPack(pack);
+}
+
+const rarityOrder = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
+
+function renderPack(pack) {
+  const sorted = [...pack].sort((a,b) => {
+    const ra = rarityMap[a.rarity.toLowerCase()] || 'common';
+    const rb = rarityMap[b.rarity.toLowerCase()] || 'common';
+    return (rarityOrder[ra]??5) - (rarityOrder[rb]??5);
+  });
+
+  const list = document.getElementById('card-list');
+  list.innerHTML = '';
+
+  let lastRarity = null;
+  sorted.forEach(card => {
+    const r = rarityMap[card.rarity.toLowerCase()] || 'common';
+    if (lastRarity && lastRarity !== r) {
+      const sep = document.createElement('li');
+      sep.className = 'section-sep';
+      list.appendChild(sep);
+    }
+    lastRarity = r;
+
+    const li = document.createElement('li');
+    li.className = 'card-item';
+    li.innerHTML = `
+      <div class="rarity-pip pip-${r}"></div>
+      <span class="card-name">${escHtml(card.name)}</span>
+      <span class="card-cost">${escHtml(card.cost)}</span>
+      <span class="card-type">${escHtml(shortType(card.type))}</span>
+      <span class="rarity-label r-${r}">${capitalize(r)}</span>
+    `;
+    list.appendChild(li);
+  });
+
+  const packTitle = document.getElementById('pack-title');
+  const packSub = document.getElementById('pack-subtitle');
+  packTitle.textContent = `${setCode} Booster Pack`;
+  packSub.textContent = `${pack.length} cards · ${new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
+
+  document.getElementById('pack-area').classList.add('visible');
+  document.getElementById('pack-placeholder').style.display = 'none';
+}
+
+function shortType(type) {
+  if (!type) return '';
+  return type.replace('Legendary ', '').replace('Creature — ', 'Creature · ').split('//')[0].trim().substring(0, 28);
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function copyPack() {
+  const items = document.querySelectorAll('#card-list .card-item');
+  if (!items.length) return;
+
+  const lines = [`=== ${setCode} Booster Pack ===`];
+  items.forEach(li => {
+    const name = li.querySelector('.card-name')?.textContent.trim();
+    const rarity = li.querySelector('.rarity-label')?.textContent.trim();
+    const type = li.querySelector('.card-type')?.textContent.trim();
+    const cost = li.querySelector('.card-cost')?.textContent.trim();
+    if (name) lines.push(`${name}  [${rarity}]${type ? '  ' + type : ''}${cost ? '  ' + cost : ''}`);
+  });
+
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'));
+    showToast('Pack copied to clipboard!');
+  } catch {
+    prompt('Copy this pack:', lines.join('\n'));
+  }
+}
+
+// Allow Enter key to trigger fetch
+document.getElementById('set-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchSet();
+});
 </script>
-
 </body>
 </html>
