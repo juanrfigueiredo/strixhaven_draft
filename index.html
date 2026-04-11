@@ -411,7 +411,16 @@ function parseCSV(data) {
   return lines.slice(1).map(line => {
     const values = line.split(",");
     let obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = values[i]);
+    headers.forEach((h, i) => {
+      let value = values[i]?.trim();
+
+      // 🔧 REMOVE surrounding quotes
+      if (value?.startsWith('"') && value?.endsWith('"')) {
+        value = value.slice(1, -1);
+      }
+
+      obj[h.trim()] = value;
+    });
     return obj;
   });
 }
