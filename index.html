@@ -158,6 +158,18 @@
     font-size: 14px;
   }
 
+  #card-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 1.5rem;
+  }
+
+  #card-images img {
+    width: 150px;
+    border-radius: 8px;
+  }
+
   #toast {
     position: fixed;
     bottom: 1.5rem;
@@ -199,6 +211,7 @@
       </div>
     </div>
     <ul id="card-list"></ul>
+  <div id="card-images"></div>
   </div>
 
   <div id="placeholder">Fetch a set to generate a pack.</div>
@@ -283,7 +296,8 @@ async function fetchAllPages(code) {
         type: card.type_line || '',
         rarity,
         number: card.collector_number || '',
-        artist: card.artist || ''
+        artist: card.artist || '',
+        image: card.image_uris ? card.image_uris.normal : (card.card_faces && card.card_faces[0].image_uris ? card.card_faces[0].image_uris.normal : '')
       });
     });
 
@@ -375,6 +389,17 @@ function renderPack(pack) {
     list.appendChild(li);
   });
 
+  const imgs = document.getElementById('card-images');
+  imgs.innerHTML = '';
+  sorted.forEach(card => {
+    if (!card.image) return;
+    const img = document.createElement('img');
+    img.src = card.image;
+    img.alt = card.name;
+    img.title = card.name;
+    imgs.appendChild(img);
+  });
+
   document.getElementById('pack-title').textContent = setCode + ' Booster Pack (' + pack.length + ' cards)';
   document.getElementById('pack-area').style.display = 'block';
   document.getElementById('placeholder').style.display = 'none';
@@ -414,7 +439,15 @@ document.getElementById('set-input').addEventListener('keydown', e => {
   const savedCode = localStorage.getItem('mtg_setcode');
   if (savedPool && savedCode) {
     try {
-      cardPool = JSON.parse(savedPool);
+      const parsed = JSON.parse(savedPool);
+      // Check cache is new format (has image field)
+      const sample = Object.values(parsed).flat()[0];
+      if (!sample || !('image' in sample)) {
+        localStorage.removeItem('mtg_cardpool');
+        localStorage.removeItem('mtg_setcode');
+        return;
+      }
+      cardPool = parsed;
       setCode = savedCode;
       document.getElementById('set-input').value = savedCode.toLowerCase();
       const total = Object.values(cardPool).flat().length;
