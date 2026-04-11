@@ -317,13 +317,23 @@ function parseChecklist(doc) {
       if (cells.length < 2) return;
       const get = (key) => colIdx[key] !== undefined && cells[colIdx[key]] ? cells[colIdx[key]].textContent.trim() : '';
       const name = get('name');
-      const rarity = get('rarity') || 'c';
       if (!name) return;
-      console.log('Card:', name, '| raw rarity:', JSON.stringify(rarity), '| all cells:', cells.map(c => c.textContent.trim()));
+      // Try rarity from colIdx first, then scan all cells for a known rarity letter
+      let rarity = get('rarity');
+      if (!rarity || !rarityMap[rarity.toLowerCase()]) {
+        for (const cell of cells) {
+          const v = cell.textContent.trim().toLowerCase();
+          if (v === 'm' || v === 'r' || v === 'u' || v === 'c' || v === 'l' || v === 's') {
+            rarity = v;
+            break;
+          }
+        }
+      }
+      rarity = rarity || 'c';
       cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity, artist: get('artist') });
     });
 
-    if (cards.length > 0) break;
+    // keep going - don't break, there might be more tables
   }
   return cards;
 }
