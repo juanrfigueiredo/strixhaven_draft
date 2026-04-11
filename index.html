@@ -333,9 +333,7 @@ function generatePack() {
   pack.push(...pick(cardPool.uncommon, Math.min(3, cardPool.uncommon.length)));
 
   const slotsLeft = Math.max(0, 14 - pack.length);
-  let commonPool = [...cardPool.common];
-  if (cardPool.land.length > 0) commonPool = [...commonPool, ...cardPool.land.slice(0, 5)];
-  pack.push(...pick(commonPool, Math.min(slotsLeft, commonPool.length)));
+  pack.push(...pick(cardPool.common || [], Math.min(slotsLeft, (cardPool.common || []).length)));
 
   if (pack.length < 5) {
     const all = Object.values(cardPool).flat();
@@ -351,9 +349,7 @@ const rarityOrder = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 
 
 function renderPack(pack) {
   const sorted = [...pack].sort((a, b) => {
-    const ra = rarityMap[a.rarity.toLowerCase()] || 'common';
-    const rb = rarityMap[b.rarity.toLowerCase()] || 'common';
-    return (rarityOrder[ra] ?? 5) - (rarityOrder[rb] ?? 5);
+    return (rarityOrder[a.rarity] ?? 5) - (rarityOrder[b.rarity] ?? 5);
   });
 
   const list = document.getElementById('card-list');
@@ -361,7 +357,7 @@ function renderPack(pack) {
 
   let lastRarity = null;
   sorted.forEach(card => {
-    const r = rarityMap[card.rarity.toLowerCase()] || 'common';
+    const r = card.rarity;
     if (lastRarity && lastRarity !== r) {
       const sep = document.createElement('li');
       sep.className = 'sep';
