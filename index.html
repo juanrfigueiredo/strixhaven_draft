@@ -604,6 +604,9 @@ function parseCards(html, code) {
   });
 
   const total = cards.length;
+  setCode = code.toUpperCase();
+  localStorage.setItem('mtg_cardpool', JSON.stringify(cardPool));
+  localStorage.setItem('mtg_setcode', setCode);
   setStatus('ok', `${total} cards loaded for ${setCode}.`);
   showStats();
   generatePack();
@@ -616,28 +619,36 @@ function parseChecklist(doc) {
 
   for (const table of tables) {
     const headers = [...table.querySelectorAll('th')].map(th => th.textContent.trim().toLowerCase());
-    if (!headers.some(h => h.includes('name') || h.includes('rarity'))) continue;
+    if (headers.length === 0) continue;
+
+    console.log('Table headers:', headers);
 
     const colIdx = {};
-    headers.forEach((h,i) => {
-      if (h.includes('number') || h === '#') colIdx.number = i;
-      if (h.includes('name')) colIdx.name = i;
-      if (h.includes('cost') || h.includes('mana')) colIdx.cost = i;
-      if (h.includes('type')) colIdx.type = i;
-      if (h.includes('rarity')) colIdx.rarity = i;
-      if (h.includes('artist')) colIdx.artist = i;
+    headers.forEach((h, i) => {
+      if (h === '#' || h === 'number' || h.includes('number')) colIdx.number = i;
+      if (h === 'name' || h.includes('name')) colIdx.name = i;
+      if (h === 'cost' || h.includes('cost') || h.includes('mana')) colIdx.cost = i;
+      if (h === 'type' || h.includes('type')) colIdx.type = i;
+      if (h === 'r' || h === 'rarity' || h.includes('rarity')) colIdx.rarity = i;
+      if (h === 'artist' || h.includes('artist')) colIdx.artist = i;
     });
+
+    console.log('colIdx:', colIdx);
+
+    if (colIdx.name === undefined) continue;
 
     const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
       const cells = [...row.querySelectorAll('td')];
       if (cells.length < 2) return;
       const get = (key) => colIdx[key] !== undefined && cells[colIdx[key]] ? cells[colIdx[key]].textContent.trim() : '';
-      const rarity = get('rarity');
       const name = get('name');
+      const rarity = get('rarity') || 'c';
       if (!name) return;
-      cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity: rarity || 'common', artist: get('artist') });
+      cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity, artist: get('artist') });
     });
+
+    if (cards.length > 0) break;
   }
   return cards;
 }
@@ -816,6 +827,26 @@ async function copyPack() {
 document.getElementById('set-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') fetchSet();
 });
+
+// Load from localStorage on startup
+(function() {
+  const savedPool = localStorage.getItem('mtg_cardpool');
+  const savedCode = localStorage.getItem('mtg_setcode');
+  if (savedPool && savedCode) {
+    try {
+      cardPool = JSON.parse(savedPool);
+      setCode = savedCode;
+      document.getElementById('set-input').value = savedCode.toLowerCase();
+      const total = Object.values(cardPool).flat().length;
+      setStatus('ok', `${total} cards loaded for ${setCode} (from cache).`);
+      showStats();
+      generatePack();
+    } catch(e) {
+      localStorage.removeItem('mtg_cardpool');
+      localStorage.removeItem('mtg_setcode');
+    }
+  }
+})();
 </script>
 </body>
 </html>
