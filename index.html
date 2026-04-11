@@ -210,17 +210,6 @@
 let cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
 let setCode = '';
 
-const PROXY = 'https://corsproxy.io/?url=';
-
-const rarityMap = {
-  'm': 'mythic', 'mythic rare': 'mythic', 'mythic': 'mythic',
-  'r': 'rare', 'rare': 'rare',
-  'u': 'uncommon', 'uncommon': 'uncommon',
-  'c': 'common', 'common': 'common',
-  'l': 'land', 'b': 'land', 'basic land': 'land', 'land': 'land',
-  's': 'special', 'special': 'special', 'bonus': 'special', 'timeshifted': 'special'
-};
-
 function setStatus(msg) {
   document.getElementById('status').textContent = msg;
 }
@@ -242,117 +231,66 @@ async function fetchSet() {
   document.getElementById('pack-area').style.display = 'none';
   document.getElementById('placeholder').style.display = 'block';
 
-  const url = 'https://mtg.wtf/card?q=set%3A' + encodeURIComponent(code);
-
   try {
-    const resp = await fetch(PROXY + encodeURIComponent(url), {
-      headers: { 'Cookie': 'default_view=checklist' }
+    const cards = await fetchAllPages(code);
+
+    if (cards.length === 0) {
+      setStatus('No cards found for "' + code.toUpperCase() + '". Check the set code.');
+      document.getElementById('fetch-btn').disabled = false;
+      return;
+    }
+
+    setCode = code.toUpperCase();
+    cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+
+    cards.forEach(c => {
+      cardPool[c.rarity] = cardPool[c.rarity] || [];
+      cardPool[c.rarity].push(c);
     });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const html = await resp.text();
-    parseCards(html, code);
+
+    localStorage.setItem('mtg_cardpool', JSON.stringify(cardPool));
+    localStorage.setItem('mtg_setcode', setCode);
+
+    setStatus(cards.length + ' cards loaded for ' + setCode + '.');
+    showStats();
+    generatePack();
   } catch (e) {
     setStatus('Error: ' + e.message);
-    document.getElementById('fetch-btn').disabled = false;
-  }
-}
-
-function parseCards(html, code) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-
-  let cards = parseChecklist(doc);
-  if (cards.length === 0) cards = parseCardView(doc);
-
-  if (cards.length === 0) {
-    setStatus('No cards found for "' + code.toUpperCase() + '". Check the set code.');
-    document.getElementById('fetch-btn').disabled = false;
-    return;
   }
 
-  setCode = code.toUpperCase();
-  cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
-
-  cards.forEach(c => {
-    const bucket = rarityMap[c.rarity.toLowerCase()] || 'common';
-    cardPool[bucket].push(c);
-  });
-
-  localStorage.setItem('mtg_cardpool', JSON.stringify(cardPool));
-  localStorage.setItem('mtg_setcode', setCode);
-
-  setStatus(cards.length + ' cards loaded for ' + setCode + '.');
-  showStats();
-  generatePack();
   document.getElementById('fetch-btn').disabled = false;
 }
 
-function parseChecklist(doc) {
+async function fetchAllPages(code) {
   const cards = [];
-  const tables = doc.querySelectorAll('table');
+  let url = 'https://api.scryfall.com/cards/search?q=set%3A' + encodeURIComponent(code) + '&unique=prints&order=set';
 
-  for (const table of tables) {
-    const headers = [...table.querySelectorAll('th')].map(th => th.textContent.trim().toLowerCase());
-    if (headers.length === 0) continue;
+  while (url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.object === 'error') throw new Error(data.details);
 
-    console.log('Table headers:', headers);
-
-    const colIdx = {};
-    headers.forEach((h, i) => {
-      if (h === '#' || h === 'number' || h.includes('number')) colIdx.number = i;
-      if (h === 'name' || h.includes('name')) colIdx.name = i;
-      if (h === 'cost' || h.includes('cost') || h.includes('mana')) colIdx.cost = i;
-      if (h === 'type' || h.includes('type')) colIdx.type = i;
-      if (h === 'r' || h === 'rarity' || h.includes('rarity')) colIdx.rarity = i;
-      if (h === 'artist' || h.includes('artist')) colIdx.artist = i;
+    data.data.forEach(card => {
+      const rarity = card.rarity === 'mythic' ? 'mythic'
+                   : card.rarity === 'rare' ? 'rare'
+                   : card.rarity === 'uncommon' ? 'uncommon'
+                   : card.rarity === 'common' ? 'common'
+                   : 'special';
+      cards.push({
+        name: card.name,
+        cost: card.mana_cost || '',
+        type: card.type_line || '',
+        rarity,
+        number: card.collector_number || '',
+        artist: card.artist || ''
+      });
     });
 
-    console.log('colIdx:', colIdx);
-
-    if (colIdx.name === undefined) continue;
-
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-      const cells = [...row.querySelectorAll('td')];
-      if (cells.length < 2) return;
-      const get = (key) => colIdx[key] !== undefined && cells[colIdx[key]] ? cells[colIdx[key]].textContent.trim() : '';
-      const name = get('name');
-      if (!name) return;
-      // Try rarity from colIdx first, then scan all cells for a known rarity letter
-      let rarity = get('rarity');
-      if (!rarity || !rarityMap[rarity.toLowerCase()]) {
-        for (const cell of cells) {
-          const v = cell.textContent.trim().toLowerCase();
-          if (v === 'm' || v === 'r' || v === 'u' || v === 'c' || v === 'l' || v === 's') {
-            rarity = v;
-            break;
-          }
-        }
-      }
-      rarity = rarity || 'c';
-      cards.push({ number: get('number'), name, cost: get('cost'), type: get('type'), rarity, artist: get('artist') });
-    });
-
-    // keep going - don't break, there might be more tables
+    url = data.has_more ? data.next_page : null;
+    if (url) await new Promise(r => setTimeout(r, 100));
   }
-  return cards;
-}
 
-function parseCardView(doc) {
-  const cards = [];
-  const entries = doc.querySelectorAll('h3 a');
-  entries.forEach(a => {
-    const parent = a.closest('div, li, section') || a.parentElement?.parentElement;
-    const name = a.textContent.trim();
-    if (!name || name.length < 2) return;
-    const text = parent ? parent.textContent : '';
-    let rarity = 'c';
-    if (/mythic rare/i.test(text)) rarity = 'm';
-    else if (/\brare\b/i.test(text)) rarity = 'r';
-    else if (/uncommon/i.test(text)) rarity = 'u';
-    else if (/basic land/i.test(text)) rarity = 'l';
-    cards.push({ number: '', name, cost: '', type: '', rarity, artist: '' });
-  });
   return cards;
 }
 
