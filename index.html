@@ -4,1267 +4,499 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTG Draft</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #0a0c0f;
-  --surface: #111318;
-  --surface2: #181c22;
-  --surface3: #1e232c;
-  --border: #2a3040;
-  --border2: #3a4560;
-  --text: #d4cfc8;
-  --text-dim: #7a8090;
-  --text-faint: #3a4050;
-  --gold: #c9a84c;
-  --gold2: #e8c96a;
-  --mythic: #e8803a;
-  --rare: #c9a84c;
-  --uncommon: #7aaec9;
-  --common: #8888aa;
-  --land: #7dc97a;
-  --special: #c97adc;
-  --accent: #4a7fd4;
-  --danger: #c44;
-  --radius: 6px;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Crimson Pro', Georgia, serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  font-size: 16px;
-}
-
-/* ─── ORNAMENTAL BORDER ─── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1000;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(var(--bg), var(--bg)) padding-box,
-    linear-gradient(135deg, #c9a84c44, transparent 40%, transparent 60%, #c9a84c44) border-box;
-}
-
-/* ─── TABS ─── */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  padding: 0 1.5rem;
-  gap: 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(8px);
-}
-
-.tab-btn {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 1rem 1.5rem;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s;
-}
-
-.tab-btn::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0; right: 0;
-  height: 2px;
-  background: var(--gold);
-  transform: scaleX(0);
-  transition: transform 0.2s;
-}
-
-.tab-btn.active { color: var(--gold); }
-.tab-btn.active::after { transform: scaleX(1); }
-.tab-btn:hover:not(.active) { color: var(--text); }
-.tab-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-
-/* ─── SETUP TAB ─── */
-#tab-setup {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
-}
-
-.setup-title {
-  font-family: 'Cinzel', serif;
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--gold2);
-  text-align: center;
-  margin-bottom: 0.4rem;
-  letter-spacing: 0.05em;
-}
-
-.setup-subtitle {
-  font-style: italic;
-  color: var(--text-dim);
-  text-align: center;
-  margin-bottom: 2.5rem;
-  font-size: 0.95rem;
-}
-
-.field {
-  margin-bottom: 1.25rem;
-}
-
-.field label {
-  display: block;
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 0.4rem;
-}
-
-.field input, .field select {
-  width: 100%;
-  padding: 0.65rem 0.9rem;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-family: 'Crimson Pro', serif;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.field input:focus, .field select:focus { border-color: var(--gold); }
-
-.field select option { background: var(--surface2); }
-
-.start-btn {
-  width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.9rem;
-  background: linear-gradient(135deg, #7a5c20, #c9a84c, #7a5c20);
-  background-size: 200% 100%;
-  border: none;
-  border-radius: var(--radius);
-  color: #1a1200;
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background-position 0.4s, opacity 0.2s;
-}
-
-.start-btn:hover { background-position: 100% 0; }
-.start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.status-line {
-  margin-top: 1rem;
-  font-size: 13px;
-  color: var(--text-dim);
-  text-align: center;
-  min-height: 1.4em;
-  font-style: italic;
-}
-
-.progress-bar {
-  height: 2px;
-  background: var(--border);
-  border-radius: 2px;
-  margin-top: 0.5rem;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--gold);
-  width: 0%;
-  transition: width 0.3s;
-}
-
-/* ─── DRAFT TAB ─── */
-#tab-draft {
-  height: calc(100vh - 49px);
-  overflow: hidden;
-  flex-direction: column;
-}
-
-#tab-draft.active { display: flex; }
-
-.draft-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.draft-round-info {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--gold);
-  text-transform: uppercase;
-}
-
-.draft-pick-info {
-  font-size: 13px;
-  color: var(--text-dim);
-  font-style: italic;
-}
-
-.draft-deck-count {
-  margin-left: auto;
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  color: var(--text-dim);
-  letter-spacing: 0.08em;
-}
-
-.draft-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  gap: 0;
-}
-
-/* ─── PACK AREA ─── */
-.pack-section {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.25rem;
-  border-right: 1px solid var(--border);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-}
-
-.pack-section h3 {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 1rem;
-}
-
-/* ─── CARD GRID ─── */
-.pack-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
-}
-
-.pack-card {
-  position: relative;
-  cursor: pointer;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid transparent;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-  background: var(--surface2);
-  aspect-ratio: 5/7;
-}
-
-.pack-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.pack-card:hover {
-  transform: translateY(-4px) scale(1.03);
-  border-color: var(--gold);
-  box-shadow: 0 8px 24px rgba(201,168,76,0.3);
-  z-index: 10;
-}
-
-.pack-card .rarity-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.pack-card .card-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  gap: 0.4rem;
-}
-
-.pack-card .card-fallback .cf-name {
-  font-family: 'Cinzel', serif;
-  font-size: 9px;
-  text-align: center;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.pack-card .card-fallback .cf-type {
-  font-size: 8px;
-  color: var(--text-dim);
-  text-align: center;
-  font-style: italic;
-}
-
-.pack-card .card-fallback .cf-cost {
-  font-size: 8px;
-  color: var(--text-dim);
-  font-family: monospace;
-}
-
-/* ─── DECK SIDEBAR ─── */
-.deck-section {
-  width: 220px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  padding: 1rem;
-  background: var(--surface);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-}
-
-.deck-section h3 {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 0.75rem;
-}
-
-.deck-section ul {
-  list-style: none;
-  font-size: 13px;
-}
-
-.deck-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--text-faint);
-  cursor: pointer;
-  transition: color 0.1s;
-}
-
-.deck-item:hover { color: var(--gold); }
-
-.rarity-pip {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.pip-mythic   { background: var(--mythic); }
-.pip-rare     { background: var(--rare); }
-.pip-uncommon { background: var(--uncommon); }
-.pip-common   { background: var(--common); }
-.pip-land     { background: var(--land); }
-.pip-special  { background: var(--special); }
-
-.deck-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.deck-cost { font-size: 11px; color: var(--text-dim); font-family: monospace; }
-
-/* Hover preview */
-.card-preview {
-  position: fixed;
-  pointer-events: none;
-  z-index: 500;
-  display: none;
-  width: 200px;
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.8);
-}
-.card-preview img { width: 100%; border-radius: 10px; }
-.card-preview.vis { display: block; }
-
-/* ─── DECK TAB ─── */
-#tab-deck {
-  padding: 2rem 1.5rem;
-}
-
-.deck-header-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.deck-title {
-  font-family: 'Cinzel', serif;
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--gold2);
-}
-
-.deck-count-badge {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 2px 10px;
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.export-btn {
-  padding: 0.5rem 1.2rem;
-  background: var(--surface2);
-  border: 1px solid var(--gold);
-  border-radius: var(--radius);
-  color: var(--gold);
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.export-btn:hover { background: #c9a84c22; }
-
-.deck-images-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
-  margin-bottom: 2rem;
-}
-
-.deck-card-img {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  aspect-ratio: 5/7;
-  background: var(--surface2);
-}
-
-.deck-card-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.deck-card-img .rarity-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.deck-by-type h4 {
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin: 1.5rem 0 0.5rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.3rem;
-}
-
-.deck-type-list {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 2px 1rem;
-}
-
-.deck-type-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  padding: 2px 0;
-}
-
-/* ─── PACK TOOL TAB ─── */
-#tab-packs {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
-
-#tab-packs h2 {
-  font-family: 'Cinzel', serif;
-  font-size: 1rem;
-  color: var(--gold2);
-  margin-bottom: 1.5rem;
-}
-
-/* ─── WAITING OVERLAY ─── */
-.ai-passing {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  backdrop-filter: blur(4px);
-  display: none;
-}
-
-.ai-passing.vis { display: flex; }
-
-.ai-passing-inner {
-  text-align: center;
-  padding: 2rem;
-}
-
-.ai-passing-inner p {
-  font-family: 'Cinzel', serif;
-  font-size: 0.9rem;
-  color: var(--gold);
-  letter-spacing: 0.1em;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border2);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 1rem auto;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── TOAST ─── */
-#toast {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  border-radius: var(--radius);
-  padding: 0.5rem 1rem;
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  z-index: 999;
-}
-#toast.show { opacity: 1; }
-
-/* ─── MISC ─── */
-.sep-rarity {
-  grid-column: 1 / -1;
-  font-family: 'Cinzel', serif;
-  font-size: 9px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  padding-top: 0.5rem;
-}
-
-/* ─── SCROLLBARS ─── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-/* ─── PACK TAB LEGACY STYLES ─── */
-.row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
-.row input[type="text"] {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface2);
-  color: var(--text);
-  font-family: 'Crimson Pro', serif;
-  font-size: 1rem;
-  outline: none;
-}
-.row input[type="text"]:focus { border-color: var(--gold); }
-.row button, .pack-actions button {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border2);
-  border-radius: 4px;
-  background: var(--surface2);
-  color: var(--text);
-  font-family: 'Crimson Pro', serif;
-  font-size: 14px;
-  cursor: pointer;
-}
-.row button:hover, .pack-actions button:hover { background: var(--surface3); }
-#pt-status { font-size: 13px; color: var(--text-dim); margin-bottom: 0.5rem; min-height: 1.2em; font-style: italic; }
-#pt-stats { font-size: 13px; color: var(--text-dim); margin-bottom: 1.5rem; }
-hr.pack-hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
-#pt-pack-area { display: none; }
-.pack-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 0.5rem; flex-wrap: wrap; }
-.pack-header h2 { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--gold2); }
-.pack-actions { display: flex; gap: 0.5rem; }
-ul#pt-card-list { list-style: none; }
-.pt-card-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-.pt-card-item .card-name { flex: 1; }
-.pt-card-item .card-cost { font-size: 12px; color: var(--text-dim); font-family: monospace; }
-.pt-card-item .card-type { font-size: 12px; color: var(--text-dim); min-width: 100px; text-align: right; font-style: italic; }
-li.pt-sep { border: none; border-top: 1px solid var(--border); margin: 4px 0; padding: 0; }
-#pt-card-images { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.5rem; }
-#pt-card-images img { width: 150px; border-radius: 8px; transition: transform 0.2s; cursor: pointer; }
-#pt-card-images img:hover { transform: scale(2.5); position: relative; z-index: 10; }
-
-/* ─── EMPTY STATE ─── */
-.empty-draft {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 1rem;
-  color: var(--text-faint);
-  font-family: 'Cinzel', serif;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-}
-
-.empty-draft-icon {
-  font-size: 3rem;
-  opacity: 0.3;
-}
-
-@media (max-width: 640px) {
-  .pack-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-  .deck-section { width: 160px; }
-}
-</style>
+<link rel="stylesheet" href="css/steam-tokens.css">
+<link rel="stylesheet" href="css/mtg-draft.css">
 </head>
 <body>
 
-<!-- TABS -->
-<nav class="tabs">
-  <button class="tab-btn active" onclick="showTab('setup')">Setup</button>
-  <button class="tab-btn" id="tab-btn-draft" onclick="showTab('draft')" disabled>Draft</button>
-  <button class="tab-btn" id="tab-btn-deck" onclick="showTab('deck')" disabled>My Deck</button>
-  <button class="tab-btn" onclick="showTab('packs')">Pack Tool</button>
+<!-- TOP NAV -->
+<nav id="topnav">
+  <span class="nav-logo">✦ MTG Draft</span>
+  <button class="nav-btn active"  onclick="goTo('setup')">Setup</button>
+  <button class="nav-btn" id="nav-draft" onclick="goTo('draft')" disabled>Draft</button>
+  <button class="nav-btn" id="nav-deck"  onclick="goTo('deck')"  disabled>My Deck</button>
+  <button class="nav-btn" onclick="goTo('packs')">Pack Tool</button>
 </nav>
 
-<!-- SETUP TAB -->
-<div class="tab-pane active" id="tab-setup">
-  <div class="setup-title">✦ The Draft Table ✦</div>
-  <div class="setup-subtitle">Open packs, forge your deck, claim glory.</div>
-
-  <div class="field">
-    <label>Set Code</label>
-    <input type="text" id="s-set" placeholder="e.g. dsk, blb, sos" maxlength="10" autocomplete="off" spellcheck="false">
+<!-- SETUP PAGE -->
+<div class="page active" id="page-setup">
+  <div class="setup-card">
+    <div class="setup-title">The Draft Table</div>
+    <div class="setup-sub">Open packs, forge your deck, claim glory.</div>
+    <div class="field">
+      <label>Set Code</label>
+      <input type="text" id="s-set" placeholder="e.g. dsk, blb, sos, mh3" maxlength="10" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>Players (including you)</label>
+      <select id="s-players">
+        <option value="2">2 players</option>
+        <option value="4">4 players</option>
+        <option value="6">6 players</option>
+        <option value="8" selected>8 players (standard)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Packs per Player</label>
+      <select id="s-packs">
+        <option value="1">1 pack</option>
+        <option value="2">2 packs</option>
+        <option value="3" selected>3 packs (standard)</option>
+        <option value="4">4 packs</option>
+      </select>
+    </div>
+    <button class="start-btn" id="s-btn" onclick="startDraft()">Fetch Set &amp; Begin Draft</button>
+    <div class="status-msg" id="s-status">Enter a set code to begin.</div>
+    <div class="progress-bar"><div class="progress-fill" id="s-prog"></div></div>
   </div>
-  <div class="field">
-    <label>Number of Players (including you)</label>
-    <select id="s-players">
-      <option value="2">2 players</option>
-      <option value="4">4 players</option>
-      <option value="6">6 players</option>
-      <option value="8" selected>8 players (standard)</option>
-    </select>
-  </div>
-  <div class="field">
-    <label>Packs per Player</label>
-    <select id="s-packs">
-      <option value="1">1 pack</option>
-      <option value="2">2 packs</option>
-      <option value="3" selected>3 packs (standard)</option>
-      <option value="4">4 packs</option>
-    </select>
-  </div>
-  <button class="start-btn" id="s-start-btn" onclick="startDraft()">Fetch Set &amp; Begin Draft</button>
-  <div class="status-line" id="s-status">Enter a set code to begin.</div>
-  <div class="progress-bar"><div class="progress-fill" id="s-progress"></div></div>
 </div>
 
-<!-- DRAFT TAB -->
-<div class="tab-pane" id="tab-draft">
-  <div class="draft-header">
+<!-- DRAFT PAGE -->
+<div class="page" id="page-draft">
+  <div class="draft-bar">
     <div>
-      <div class="draft-round-info" id="d-round-info">Round 1 · Pack 1</div>
-      <div class="draft-pick-info" id="d-pick-info">Pick 1 of 15</div>
+      <div class="draft-round" id="d-round">Round 1</div>
+      <div class="draft-pick"  id="d-pick">Pick 1</div>
     </div>
-    <div class="draft-deck-count" id="d-deck-count">0 cards in deck</div>
+    <div class="draft-count" id="d-count">0 cards</div>
   </div>
   <div class="draft-body">
-    <div class="pack-section">
-      <h3 id="d-pack-title">Your Pack</h3>
-      <div class="pack-grid" id="d-pack-grid"></div>
+    <div class="pack-area">
+      <div class="pack-area-title" id="d-pack-title">Your Pack</div>
+      <div class="pack-grid" id="d-grid"></div>
     </div>
-    <div class="deck-section">
+    <div class="picks-sidebar">
       <h3>My Picks</h3>
-      <ul id="d-deck-list"></ul>
+      <ul class="picks-list" id="d-picks"></ul>
     </div>
   </div>
 </div>
 
-<!-- DECK TAB -->
-<div class="tab-pane" id="tab-deck">
-  <div class="deck-header-row">
+<!-- DECK PAGE -->
+<div class="page" id="page-deck">
+  <div class="deck-header">
     <div class="deck-title">My Deck</div>
-    <div class="deck-count-badge" id="dk-count">0 cards</div>
-    <button class="export-btn" onclick="exportDeck()" style="margin-left:auto">Export List</button>
-    <button class="export-btn" onclick="exportArena()">Arena Format</button>
+    <div class="badge" id="dk-count">0 cards</div>
+    <button class="exp-btn exp-btn-first" onclick="exportDeck()">Export List</button>
+    <button class="exp-btn" onclick="exportArena()">Arena Format</button>
   </div>
-  <div class="deck-images-grid" id="dk-images"></div>
-  <div class="deck-by-type" id="dk-by-type"></div>
+  <div class="deck-imgs" id="dk-imgs"></div>
+  <div class="by-type-section" id="dk-types"></div>
 </div>
 
-<!-- PACK TOOL TAB -->
-<div class="tab-pane" id="tab-packs">
+<!-- PACK TOOL PAGE -->
+<div class="page" id="page-packs">
   <h2>Pack Generator</h2>
   <div class="row">
-    <input type="text" id="pt-set-input" placeholder="Set code (e.g. sos, dsk)" maxlength="10" autocomplete="off" spellcheck="false">
-    <button onclick="ptFetchSet()">Fetch Set</button>
+    <input type="text" id="pt-set" placeholder="Set code (e.g. sos, dsk)" maxlength="10" autocomplete="off" spellcheck="false">
+    <button class="small-btn" onclick="ptFetch()">Fetch Set</button>
   </div>
-  <div id="pt-status">Enter a set code to load the card pool.</div>
-  <div id="pt-stats"></div>
-  <hr class="pack-hr">
+  <div class="pt-status" id="pt-status">Enter a set code to load the card pool.</div>
+  <div class="pt-stats"  id="pt-stats"></div>
+  <hr class="pt-hr">
   <div id="pt-pack-area">
-    <div class="pack-header">
-      <h2 id="pt-pack-title"></h2>
-      <div class="pack-actions">
-        <button onclick="ptGeneratePack()">New Pack</button>
-        <button onclick="ptCopyPack()">Copy</button>
+    <div class="pt-pack-header">
+      <h3 id="pt-title"></h3>
+      <div class="pt-actions">
+        <button class="small-btn" onclick="ptNewPack()">New Pack</button>
+        <button class="small-btn" onclick="ptCopy()">Copy</button>
       </div>
     </div>
-    <ul id="pt-card-list"></ul>
-    <div id="pt-card-images"></div>
+    <ul class="pt-list" id="pt-list"></ul>
+    <div id="pt-imgs"></div>
   </div>
 </div>
 
-<!-- Card hover preview -->
-<div class="card-preview" id="card-preview">
-  <img id="card-preview-img" src="" alt="">
-</div>
-
-<!-- AI passing overlay -->
-<div class="ai-passing" id="ai-overlay">
-  <div class="ai-passing-inner">
-    <div class="spinner"></div>
-    <p>AI Players Drafting…</p>
-  </div>
-</div>
-
+<!-- Hover preview -->
+<div id="card-preview"><img id="preview-img" src="" alt=""></div>
 <div id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
-let cardPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+// ══════════════════════════════════════════
+//  GLOBALS
+// ══════════════════════════════════════════
 let setCode = '';
-
-// Draft state
 let draftState = null;
-/*
-draftState = {
-  numPlayers, packsPerPlayer, currentRound, currentPick,
-  packs: [ [packForPlayer0, packForPlayer1, ...], ... ],  // [round][player]
-  humanDeck: [],
-  done: false
-}
-*/
 
-// ═══════════════════════════════════════════════
-//  TAB SYSTEM
-// ═══════════════════════════════════════════════
-function showTab(name) {
-  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  // Find the button whose onclick calls showTab(name)
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    if (btn.getAttribute('onclick') === "showTab('" + name + "')") btn.classList.add('active');
+const RAR_ORDER = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
+const RAR_COLOR = {
+  mythic:'var(--mythic)', rare:'var(--rare)', uncommon:'var(--uncommon)',
+  common:'var(--common)', land:'var(--land)', special:'var(--special)'
+};
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function goTo(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick') === "goTo('" + name + "')") b.classList.add('active');
   });
-  if (name === 'deck') renderFullDeck();
+  if (name === 'deck') renderDeckPage();
 }
 
-// ═══════════════════════════════════════════════
-//  SCRYFALL FETCH
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
+//  SCRYFALL
+// ══════════════════════════════════════════
 async function fetchAllPages(code) {
   const cards = [];
   let url = 'https://api.scryfall.com/cards/search?q=set%3A' + encodeURIComponent(code) + '&unique=prints&order=set';
   while (url) {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    if (data.object === 'error') throw new Error(data.details);
-    data.data.forEach(card => {
-      const rarity = card.rarity === 'mythic' ? 'mythic'
-                   : card.rarity === 'rare' ? 'rare'
-                   : card.rarity === 'uncommon' ? 'uncommon'
-                   : card.rarity === 'common' ? 'common'
-                   : 'special';
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.object === 'error') throw new Error(d.details);
+    d.data.forEach(c => {
+      const rarity = { mythic:'mythic', rare:'rare', uncommon:'uncommon', common:'common' }[c.rarity] || 'special';
       cards.push({
-        name: card.name,
-        cost: card.mana_cost || '',
-        type: card.type_line || '',
+        name:  c.name,
+        cost:  c.mana_cost || '',
+        type:  c.type_line || '',
         rarity,
-        image: card.image_uris ? card.image_uris.normal : (card.card_faces && card.card_faces[0].image_uris ? card.card_faces[0].image_uris.normal : '')
+        image: c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || ''
       });
     });
-    url = data.has_more ? data.next_page : null;
-    if (url) await new Promise(r => setTimeout(r, 100));
+    url = d.has_more ? d.next_page : null;
+    if (url) await new Promise(res => setTimeout(res, 100));
   }
   return cards;
 }
 
 function buildPool(cards) {
-  const pool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
-  cards.forEach(c => {
-    (pool[c.rarity] = pool[c.rarity] || []).push(c);
-  });
-  return pool;
+  const p = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+  cards.forEach(c => (p[c.rarity] = p[c.rarity] || []).push(c));
+  return p;
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 //  PACK GENERATION
-// ═══════════════════════════════════════════════
-function pick(arr, n) {
-  const pool = [...arr];
-  const result = [];
-  for (let i = 0; i < n && pool.length; i++) {
-    const idx = Math.floor(Math.random() * pool.length);
-    result.push(pool.splice(idx, 1)[0]);
-  }
-  return result;
+// ══════════════════════════════════════════
+function pickN(arr, n) {
+  const pool = [...arr], out = [];
+  for (let i = 0; i < n && pool.length; i++)
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  return out;
 }
 
-function generateOnePack(pool) {
+function makePack(pool) {
   const pack = [];
-  const useMythic = pool.mythic.length > 0 && Math.random() < (1/8);
-  if (useMythic) {
-    pack.push(...pick(pool.mythic, 1));
-  } else if (pool.rare.length > 0) {
-    pack.push(...pick(pool.rare, 1));
-  } else if (pool.mythic.length > 0) {
-    pack.push(...pick(pool.mythic, 1));
-  }
-  pack.push(...pick(pool.uncommon, Math.min(3, pool.uncommon.length)));
-  const slotsLeft = Math.max(0, 14 - pack.length);
-  pack.push(...pick(pool.common || [], Math.min(slotsLeft, (pool.common || []).length)));
+  const useMythic = pool.mythic.length > 0 && Math.random() < 1/8;
+  if (useMythic)               pack.push(...pickN(pool.mythic, 1));
+  else if (pool.rare.length)   pack.push(...pickN(pool.rare, 1));
+  else if (pool.mythic.length) pack.push(...pickN(pool.mythic, 1));
+
+  pack.push(...pickN(pool.uncommon, Math.min(3, pool.uncommon.length)));
+
+  const left = Math.max(0, 14 - pack.length);
+  pack.push(...pickN(pool.common, Math.min(left, pool.common.length)));
+
   if (pack.length < 5) {
     const all = Object.values(pool).flat();
-    const names = new Set(pack.map(c => c.name));
-    const extras = all.filter(c => !names.has(c.name));
-    pack.push(...pick(extras, Math.min(14 - pack.length, extras.length)));
+    const have = new Set(pack.map(c => c.name));
+    pack.push(...pickN(all.filter(c => !have.has(c.name)), 14 - pack.length));
   }
   return pack;
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 //  DRAFT SETUP
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 async function startDraft() {
-  const code = document.getElementById('s-set').value.trim().toLowerCase();
-  const numPlayers = parseInt(document.getElementById('s-players').value);
-  const packsPerPlayer = parseInt(document.getElementById('s-packs').value);
+  const code       = document.getElementById('s-set').value.trim().toLowerCase();
+  const numPlayers = +document.getElementById('s-players').value;
+  const numPacks   = +document.getElementById('s-packs').value;
 
-  if (!code) { setSetupStatus('Please enter a set code.'); return; }
+  if (!code) { setStat('Please enter a set code.'); return; }
 
-  document.getElementById('s-start-btn').disabled = true;
-  setSetupStatus('Fetching set data from Scryfall…');
-  setProgress(10);
+  const btn = document.getElementById('s-btn');
+  btn.disabled = true;
+  setStat('Fetching set data from Scryfall…');
+  setProg(10);
 
   let cards;
-  try {
-    cards = await fetchAllPages(code);
-  } catch(e) {
-    setSetupStatus('Error: ' + e.message);
-    document.getElementById('s-start-btn').disabled = false;
-    return;
-  }
+  try { cards = await fetchAllPages(code); }
+  catch (e) { setStat('Error: ' + e.message); btn.disabled = false; return; }
 
   if (!cards.length) {
-    setSetupStatus('No cards found for "' + code.toUpperCase() + '". Check the set code.');
-    document.getElementById('s-start-btn').disabled = false;
+    setStat('No cards found for "' + code.toUpperCase() + '". Check the set code.');
+    btn.disabled = false;
     return;
   }
 
   setCode = code.toUpperCase();
-  cardPool = buildPool(cards);
-  setSetupStatus(cards.length + ' cards loaded. Generating packs…');
-  setProgress(60);
+  const pool = buildPool(cards);
+  setStat(cards.length + ' cards loaded. Generating packs…');
+  setProg(60);
 
-  // Generate all packs for all rounds
-  // packs[round][player] = array of cards
+  // packs[round][player]
   const packs = [];
-  for (let r = 0; r < packsPerPlayer; r++) {
-    const roundPacks = [];
-    for (let p = 0; p < numPlayers; p++) {
-      roundPacks.push(generateOnePack(cardPool));
-    }
-    packs.push(roundPacks);
-  }
+  for (let r = 0; r < numPacks; r++)
+    packs.push(Array.from({ length: numPlayers }, () => makePack(pool)));
 
-  draftState = {
-    numPlayers,
-    packsPerPlayer,
-    currentRound: 0,
-    currentPick: 0,
-    packs,
-    humanDeck: [],
-    done: false
-  };
+  draftState = { numPlayers, numPacks, round: 0, pick: 0, packs, deck: [], done: false };
 
-  setProgress(100);
-  setSetupStatus('Draft ready! ' + numPlayers + ' players · ' + packsPerPlayer + ' packs each.');
+  setProg(100);
+  setStat('Draft ready! ' + numPlayers + ' players · ' + numPacks + ' packs each.');
 
-  // Enable tabs
-  document.getElementById('tab-btn-draft').disabled = false;
-  document.getElementById('tab-btn-deck').disabled = false;
+  document.getElementById('nav-draft').disabled = false;
+  document.getElementById('nav-deck').disabled  = false;
+  btn.disabled = false;
 
-  setTimeout(() => {
-    showTab('draft');
-    renderCurrentPack();
-    document.getElementById('s-start-btn').disabled = false;
-  }, 400);
+  goTo('draft');
+  renderPack();
 }
 
-function setSetupStatus(msg) {
-  document.getElementById('s-status').textContent = msg;
-}
+function setStat(msg) { document.getElementById('s-status').textContent = msg; }
+function setProg(p)   { document.getElementById('s-prog').style.width = p + '%'; }
 
-function setProgress(pct) {
-  document.getElementById('s-progress').style.width = pct + '%';
-}
-
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 //  DRAFT LOGIC
-// ═══════════════════════════════════════════════
-const rarityOrder = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
-
-function renderCurrentPack() {
+// ══════════════════════════════════════════
+function renderPack() {
   if (!draftState || draftState.done) return;
-  const { currentRound, currentPick, numPlayers, packsPerPlayer } = draftState;
+  const { round, pick, numPacks, packs } = draftState;
+  const humanPack = packs[round][0];
+  const sorted = [...humanPack].sort((a,b) => (RAR_ORDER[a.rarity]??5) - (RAR_ORDER[b.rarity]??5));
 
-  // Human is always player 0
-  const humanPack = draftState.packs[currentRound][0];
-
-  // Sort by rarity
-  const sorted = [...humanPack].sort((a,b) => (rarityOrder[a.rarity]??5) - (rarityOrder[b.rarity]??5));
-
-  const grid = document.getElementById('d-pack-grid');
+  const grid = document.getElementById('d-grid');
   grid.innerHTML = '';
 
-  sorted.forEach((card, i) => {
+  sorted.forEach(card => {
+    const origIdx = humanPack.indexOf(card);
     const div = document.createElement('div');
     div.className = 'pack-card';
-    div.dataset.idx = humanPack.indexOf(card);
 
     if (card.image) {
-      div.innerHTML = `<img src="${escHtml(card.image)}" alt="${escHtml(card.name)}" loading="lazy">
-        <div class="rarity-badge pip-${card.rarity}" style="width:9px;height:9px;border-radius:50%;position:absolute;top:4px;right:4px;background:var(--${card.rarity === 'uncommon' ? 'uncommon' : card.rarity === 'mythic' ? 'mythic' : card.rarity === 'rare' ? 'rare' : card.rarity === 'land' ? 'land' : card.rarity === 'special' ? 'special' : 'common'})"></div>`;
+      div.innerHTML =
+        '<img src="' + esc(card.image) + '" alt="' + esc(card.name) + '" loading="lazy">' +
+        '<div class="r-dot" style="background:' + (RAR_COLOR[card.rarity]||'#888') + '"></div>';
     } else {
-      div.innerHTML = `<div class="card-fallback">
-        <div class="rarity-pip pip-${card.rarity}" style="width:10px;height:10px;border-radius:50%;"></div>
-        <div class="cf-name">${escHtml(card.name)}</div>
-        <div class="cf-type">${escHtml(shortType(card.type))}</div>
-        <div class="cf-cost">${escHtml(card.cost)}</div>
-      </div>`;
+      div.innerHTML =
+        '<div class="card-fallback">' +
+          '<div class="rp rp-' + card.rarity + '"></div>' +
+          '<div class="cf-name">' + esc(card.name) + '</div>' +
+          '<div class="cf-type">' + esc(shortType(card.type)) + '</div>' +
+          '<div class="cf-cost">' + esc(card.cost) + '</div>' +
+        '</div>';
     }
 
-    div.addEventListener('click', () => pickCard(parseInt(div.dataset.idx)));
-    div.addEventListener('mouseenter', e => showPreview(card, e));
-    div.addEventListener('mousemove', e => movePreview(e));
-    div.addEventListener('mouseleave', hidePreview);
+    div.addEventListener('click',      ()  => pickCard(origIdx));
+    div.addEventListener('mouseenter', e   => showPreview(card, e));
+    div.addEventListener('mousemove',  e   => movePreview(e));
+    div.addEventListener('mouseleave', ()  => hidePreview());
     grid.appendChild(div);
   });
 
-  // Update header
-  const pickNum = draftState.currentPick + 1;
-  const totalPicks = draftState.packs[currentRound][0].length; // before this pick
-  document.getElementById('d-round-info').textContent = `Round ${currentRound + 1} · Pack ${currentRound + 1} of ${packsPerPlayer}`;
-  document.getElementById('d-pick-info').textContent = `Pick ${pickNum}`;
-  document.getElementById('d-pack-title').textContent = `Pack ${currentRound + 1} — ${humanPack.length} cards remaining`;
-  renderSidebarDeck();
+  document.getElementById('d-round').textContent = 'Round ' + (round+1) + ' of ' + numPacks;
+  document.getElementById('d-pick').textContent  = 'Pick ' + (pick+1) + ' · ' + humanPack.length + ' cards remaining';
+  document.getElementById('d-pack-title').textContent = 'Pack ' + (round+1) + ' — choose a card';
+  renderSidebar();
 }
 
-async function pickCard(packIdx) {
+function pickCard(idx) {
   if (!draftState || draftState.done) return;
+  const { round, numPlayers, packs } = draftState;
+  const humanPack = packs[round][0];
 
-  const { currentRound, numPlayers } = draftState;
-  const humanPack = draftState.packs[currentRound][0];
-  const chosenCard = humanPack[packIdx];
+  draftState.deck.push(humanPack.splice(idx, 1)[0]);
+  draftState.pick++;
 
-  // Add to human deck
-  draftState.humanDeck.push(chosenCard);
-  humanPack.splice(packIdx, 1);
-
-  draftState.currentPick++;
-
-  // AI players pick from their own packs
+  // AI picks
   for (let p = 1; p < numPlayers; p++) {
-    const aiPack = draftState.packs[currentRound][p];
-    if (aiPack.length > 0) {
-      const aiIdx = Math.floor(Math.random() * aiPack.length);
-      aiPack.splice(aiIdx, 1);
-    }
+    const ap = packs[round][p];
+    if (ap.length) ap.splice(Math.floor(Math.random() * ap.length), 1);
   }
 
-  // Rotate packs (odd rounds go left, even go right)
   if (humanPack.length > 0) {
-    rotatePacks(currentRound);
+    rotatePacks(round);
+    renderPack();
+  } else if (draftState.round + 1 < draftState.numPacks) {
+    draftState.round++;
+    draftState.pick = 0;
+    renderPack();
   } else {
-    // All packs exhausted, go to next round
-    if (draftState.currentRound + 1 < draftState.packsPerPlayer) {
-      draftState.currentRound++;
-      draftState.currentPick = 0;
-      // Packs are fresh — already generated
-    } else {
-      // Draft over
-      draftState.done = true;
-      showToast('Draft complete! Check your deck.');
-      renderSidebarDeck();
-      document.getElementById('d-pack-grid').innerHTML = '<div class="empty-draft"><div class="empty-draft-icon">⚔️</div><span>Draft Complete!</span><span style="color:var(--text-dim);font-family:Crimson Pro">Switch to My Deck tab to view your cards.</span></div>';
-      document.getElementById('d-round-info').textContent = 'Draft Complete';
-      document.getElementById('d-pick-info').textContent = draftState.humanDeck.length + ' cards picked';
-      return;
-    }
+    // Draft complete
+    draftState.done = true;
+    renderSidebar();
+    document.getElementById('d-grid').innerHTML =
+      '<div class="empty-state">' +
+        '<div class="es-icon">⚔️</div>' +
+        '<div class="es-label">Draft Complete</div>' +
+        '<div class="es-sub">Switch to My Deck to view your cards.</div>' +
+      '</div>';
+    document.getElementById('d-round').textContent = 'Draft Complete';
+    document.getElementById('d-pick').textContent  = draftState.deck.length + ' cards picked';
+    showToast('Draft done! Check My Deck →');
   }
-
-  renderCurrentPack();
 }
 
 function rotatePacks(round) {
   const { numPlayers, packs } = draftState;
-  const roundPacks = packs[round];
-  // Even rounds pass left (0→n-1, 1→0, 2→1, ...)
-  // Odd rounds pass right (0→1, 1→2, ..., n-1→0)
-  const direction = round % 2 === 0 ? 'left' : 'right';
-  const newPacks = new Array(numPlayers);
+  const rp  = packs[round];
+  const out = new Array(numPlayers);
   for (let p = 0; p < numPlayers; p++) {
-    if (direction === 'left') {
-      newPacks[(p - 1 + numPlayers) % numPlayers] = roundPacks[p];
-    } else {
-      newPacks[(p + 1) % numPlayers] = roundPacks[p];
-    }
+    // Even rounds pass left, odd rounds pass right
+    const dest = round % 2 === 0
+      ? (p - 1 + numPlayers) % numPlayers
+      : (p + 1) % numPlayers;
+    out[dest] = rp[p];
   }
-  draftState.packs[round] = newPacks;
+  draftState.packs[round] = out;
 }
 
-// ═══════════════════════════════════════════════
-//  SIDEBAR DECK RENDER
-// ═══════════════════════════════════════════════
-function renderSidebarDeck() {
-  const deck = draftState ? draftState.humanDeck : [];
-  const sorted = [...deck].sort((a,b) => (rarityOrder[a.rarity]??5) - (rarityOrder[b.rarity]??5));
-  const ul = document.getElementById('d-deck-list');
+function renderSidebar() {
+  const deck = draftState?.deck || [];
+  const sorted = [...deck].sort((a,b) => (RAR_ORDER[a.rarity]??5) - (RAR_ORDER[b.rarity]??5));
+  const ul = document.getElementById('d-picks');
   ul.innerHTML = '';
   let lastR = null;
   sorted.forEach(card => {
     if (lastR !== null && lastR !== card.rarity) {
       const sep = document.createElement('li');
-      sep.style.cssText = 'border-top:1px solid var(--border);margin:4px 0;padding:0;list-style:none;';
+      sep.style.cssText = 'border-top:1px solid var(--border);margin:3px 0;padding:0;';
       ul.appendChild(sep);
     }
     lastR = card.rarity;
     const li = document.createElement('li');
-    li.className = 'deck-item';
-    li.innerHTML = `<div class="rarity-pip pip-${card.rarity}"></div><span class="deck-name">${escHtml(card.name)}</span><span class="deck-cost">${escHtml(card.cost)}</span>`;
+    li.className = 'pick-item';
+    li.innerHTML =
+      '<div class="rp rp-' + card.rarity + '"></div>' +
+      '<span class="pick-name">' + esc(card.name) + '</span>' +
+      '<span class="pick-cost">' + esc(card.cost) + '</span>';
     if (card.image) {
       li.addEventListener('mouseenter', e => showPreview(card, e));
-      li.addEventListener('mousemove', e => movePreview(e));
+      li.addEventListener('mousemove',  e => movePreview(e));
       li.addEventListener('mouseleave', hidePreview);
     }
     ul.appendChild(li);
   });
-  document.getElementById('d-deck-count').textContent = deck.length + ' cards in deck';
+  document.getElementById('d-count').textContent = deck.length + ' cards';
 }
 
-// ═══════════════════════════════════════════════
-//  FULL DECK TAB
-// ═══════════════════════════════════════════════
-function renderFullDeck() {
-  const deck = draftState ? draftState.humanDeck : [];
+// ══════════════════════════════════════════
+//  DECK PAGE
+// ══════════════════════════════════════════
+function renderDeckPage() {
+  const deck = draftState?.deck || [];
   document.getElementById('dk-count').textContent = deck.length + ' cards';
 
-  // Sort by rarity then name
   const sorted = [...deck].sort((a,b) => {
-    const rd = (rarityOrder[a.rarity]??5) - (rarityOrder[b.rarity]??5);
-    if (rd !== 0) return rd;
-    return a.name.localeCompare(b.name);
+    const rd = (RAR_ORDER[a.rarity]??5) - (RAR_ORDER[b.rarity]??5);
+    return rd !== 0 ? rd : a.name.localeCompare(b.name);
   });
 
   // Images grid
-  const imgsEl = document.getElementById('dk-images');
+  const imgsEl = document.getElementById('dk-imgs');
   imgsEl.innerHTML = '';
   sorted.forEach(card => {
     const div = document.createElement('div');
-    div.className = 'deck-card-img';
+    div.className = 'dk-card';
     if (card.image) {
-      div.innerHTML = `<img src="${escHtml(card.image)}" alt="${escHtml(card.name)}" loading="lazy">
-        <div class="rarity-badge" style="width:9px;height:9px;border-radius:50%;position:absolute;top:4px;right:4px;background:var(--${card.rarity})"></div>`;
+      div.innerHTML =
+        '<img src="' + esc(card.image) + '" alt="' + esc(card.name) + '" loading="lazy">' +
+        '<div class="r-dot" style="background:' + (RAR_COLOR[card.rarity]||'#888') + '"></div>';
     } else {
-      div.innerHTML = `<div class="card-fallback" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:.5rem;gap:.4rem;">
-        <div class="rarity-pip pip-${card.rarity}" style="width:10px;height:10px;border-radius:50%;"></div>
-        <div style="font-family:'Cinzel',serif;font-size:9px;text-align:center;">${escHtml(card.name)}</div>
-        <div style="font-size:8px;color:var(--text-dim);font-style:italic;">${escHtml(shortType(card.type))}</div>
-      </div>`;
+      div.innerHTML =
+        '<div class="card-fallback">' +
+          '<div class="rp rp-' + card.rarity + '"></div>' +
+          '<div class="cf-name">' + esc(card.name) + '</div>' +
+          '<div class="cf-type">' + esc(shortType(card.type)) + '</div>' +
+        '</div>';
     }
     div.addEventListener('mouseenter', e => showPreview(card, e));
-    div.addEventListener('mousemove', e => movePreview(e));
+    div.addEventListener('mousemove',  e => movePreview(e));
     div.addEventListener('mouseleave', hidePreview);
     imgsEl.appendChild(div);
   });
 
   // By type
-  const types = {};
-  sorted.forEach(card => {
-    const t = mainType(card.type);
-    if (!types[t]) types[t] = [];
-    types[t].push(card);
+  const buckets = {};
+  sorted.forEach(c => {
+    const t = mainType(c.type);
+    (buckets[t] = buckets[t] || []).push(c);
   });
-
-  const byTypeEl = document.getElementById('dk-by-type');
-  byTypeEl.innerHTML = '';
-  const typeOrder = ['Creature','Instant','Sorcery','Enchantment','Artifact','Planeswalker','Battle','Land','Other'];
-  typeOrder.forEach(t => {
-    if (!types[t] || !types[t].length) return;
+  const typesEl = document.getElementById('dk-types');
+  typesEl.innerHTML = '';
+  ['Creature','Instant','Sorcery','Enchantment','Artifact','Planeswalker','Battle','Land','Other'].forEach(t => {
+    const group = buckets[t];
+    if (!group?.length) return;
     const h = document.createElement('h4');
-    h.textContent = t + ' (' + types[t].length + ')';
-    byTypeEl.appendChild(h);
+    h.textContent = t + ' (' + group.length + ')';
+    typesEl.appendChild(h);
     const ul = document.createElement('ul');
-    ul.className = 'deck-type-list';
-    types[t].forEach(card => {
+    ul.className = 'type-list';
+    group.forEach(card => {
       const li = document.createElement('li');
-      li.className = 'deck-type-item';
-      li.innerHTML = `<div class="rarity-pip pip-${card.rarity}"></div><span>${escHtml(card.name)}</span><span style="margin-left:auto;font-size:11px;color:var(--text-dim);font-family:monospace">${escHtml(card.cost)}</span>`;
+      li.className = 'type-item';
+      li.innerHTML =
+        '<div class="rp rp-' + card.rarity + '"></div>' +
+        '<span>' + esc(card.name) + '</span>' +
+        '<span style="margin-left:auto;font-size:10px;color:var(--text-dim);font-family:monospace">' + esc(card.cost) + '</span>';
       ul.appendChild(li);
     });
-    byTypeEl.appendChild(ul);
+    typesEl.appendChild(ul);
   });
 }
 
-function mainType(typeStr) {
-  if (!typeStr) return 'Other';
-  const t = typeStr.split('//')[0];
-  const order = ['Creature','Instant','Sorcery','Enchantment','Artifact','Planeswalker','Battle','Land'];
-  for (const o of order) { if (t.includes(o)) return o; }
-  return 'Other';
-}
-
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 //  EXPORT
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 function exportDeck() {
-  const deck = draftState ? draftState.humanDeck : [];
-  if (!deck.length) { showToast('No cards to export!'); return; }
+  const deck = draftState?.deck || [];
+  if (!deck.length) { showToast('No cards yet!'); return; }
   const counts = {};
-  deck.forEach(c => { counts[c.name] = (counts[c.name] || 0) + 1; });
-  const lines = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c + 'x ' + n);
-  copyText(lines.join('\n'), 'Deck list copied!');
+  deck.forEach(c => counts[c.name] = (counts[c.name]||0) + 1);
+  const txt = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c+'x '+n).join('\n');
+  copyText(txt, 'Deck list copied!');
 }
 
 function exportArena() {
-  const deck = draftState ? draftState.humanDeck : [];
-  if (!deck.length) { showToast('No cards to export!'); return; }
+  const deck = draftState?.deck || [];
+  if (!deck.length) { showToast('No cards yet!'); return; }
   const counts = {};
-  const setMap = {};
-  deck.forEach(c => {
-    counts[c.name] = (counts[c.name] || 0) + 1;
-    setMap[c.name] = setCode;
-  });
-  const lines = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c + ' ' + n + ' (' + setCode + ')');
-  copyText(lines.join('\n'), 'Arena format copied!');
+  deck.forEach(c => counts[c.name] = (counts[c.name]||0) + 1);
+  const txt = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c+' '+n+' ('+setCode+')').join('\n');
+  copyText(txt, 'Arena format copied!');
 }
 
-async function copyText(text, successMsg) {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast(successMsg);
-  } catch {
-    prompt('Copy your deck:', text);
-  }
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); showToast(msg); }
+  catch { prompt('Copy:', text); }
 }
 
-// ═══════════════════════════════════════════════
-//  CARD HOVER PREVIEW
-// ═══════════════════════════════════════════════
-function showPreview(card, e) {
-  if (!card.image) return;
-  const p = document.getElementById('card-preview');
-  document.getElementById('card-preview-img').src = card.image;
-  p.classList.add('vis');
-  movePreview(e);
-}
-
-function movePreview(e) {
-  const p = document.getElementById('card-preview');
-  let x = e.clientX + 16;
-  let y = e.clientY + 16;
-  if (x + 210 > window.innerWidth) x = e.clientX - 216;
-  if (y + 280 > window.innerHeight) y = e.clientY - 284;
-  p.style.left = x + 'px';
-  p.style.top = y + 'px';
-}
-
-function hidePreview() {
-  document.getElementById('card-preview').classList.remove('vis');
-}
-
-// ═══════════════════════════════════════════════
-//  PACK TOOL TAB (preserved from original)
-// ═══════════════════════════════════════════════
-let ptPool = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
+// ══════════════════════════════════════════
+//  PACK TOOL
+// ══════════════════════════════════════════
+let ptPool = null;
 let ptCode = '';
 
-function ptSetStatus(msg) { document.getElementById('pt-status').textContent = msg; }
-
-async function ptFetchSet() {
-  const code = document.getElementById('pt-set-input').value.trim().toLowerCase();
-  if (!code) { ptSetStatus('Please enter a set code.'); return; }
-  ptSetStatus('Fetching…');
+async function ptFetch() {
+  const code = document.getElementById('pt-set').value.trim().toLowerCase();
+  if (!code) { ptStat('Enter a set code.'); return; }
+  ptStat('Fetching…');
   try {
     const cards = await fetchAllPages(code);
-    if (!cards.length) { ptSetStatus('No cards found for "' + code.toUpperCase() + '".'); return; }
+    if (!cards.length) { ptStat('No cards found for "' + code.toUpperCase() + '".'); return; }
     ptCode = code.toUpperCase();
     ptPool = buildPool(cards);
-    // Also update main pool if code matches or if main not loaded
-    if (!setCode) { cardPool = ptPool; setCode = ptCode; }
-    ptSetStatus(cards.length + ' cards loaded for ' + ptCode + '.');
     const parts = [];
     if (ptPool.mythic.length)   parts.push(ptPool.mythic.length + ' M');
     if (ptPool.rare.length)     parts.push(ptPool.rare.length + ' R');
     if (ptPool.uncommon.length) parts.push(ptPool.uncommon.length + ' U');
     if (ptPool.common.length)   parts.push(ptPool.common.length + ' C');
+    ptStat(cards.length + ' cards loaded for ' + ptCode + '.');
     document.getElementById('pt-stats').textContent = parts.join(' · ');
-    ptGeneratePack();
-  } catch(e) {
-    ptSetStatus('Error: ' + e.message);
-  }
+    ptNewPack();
+  } catch(e) { ptStat('Error: ' + e.message); }
 }
 
-function ptGeneratePack() {
-  const total = Object.values(ptPool).flat().length;
-  if (!total) return;
-  const pack = generateOnePack(ptPool);
-  const sorted = [...pack].sort((a,b) => (rarityOrder[a.rarity]??5) - (rarityOrder[b.rarity]??5));
-  const list = document.getElementById('pt-card-list');
+function ptNewPack() {
+  if (!ptPool) return;
+  const pack = makePack(ptPool);
+  const sorted = [...pack].sort((a,b) => (RAR_ORDER[a.rarity]??5) - (RAR_ORDER[b.rarity]??5));
+  const list = document.getElementById('pt-list');
   list.innerHTML = '';
   let lastR = null;
   sorted.forEach(card => {
@@ -1273,59 +505,78 @@ function ptGeneratePack() {
     }
     lastR = card.rarity;
     const li = document.createElement('li');
-    li.className = 'pt-card-item';
-    li.innerHTML = `<div class="rarity-pip pip-${card.rarity}"></div><span class="card-name">${escHtml(card.name)}</span><span class="card-cost">${escHtml(card.cost)}</span><span class="card-type">${escHtml(shortType(card.type))}</span>`;
+    li.className = 'pt-item';
+    li.innerHTML =
+      '<div class="rp rp-' + card.rarity + '"></div>' +
+      '<span class="pt-name">' + esc(card.name) + '</span>' +
+      '<span class="pt-cost">' + esc(card.cost) + '</span>' +
+      '<span class="pt-type">' + esc(shortType(card.type)) + '</span>';
     list.appendChild(li);
   });
-  const imgs = document.getElementById('pt-card-images');
+  const imgs = document.getElementById('pt-imgs');
   imgs.innerHTML = '';
   sorted.forEach(card => {
     if (!card.image) return;
     const img = document.createElement('img');
-    img.src = card.image;
-    img.alt = card.name;
-    img.title = card.name;
+    img.src = card.image; img.alt = card.name; img.title = card.name;
     imgs.appendChild(img);
   });
-  document.getElementById('pt-pack-title').textContent = ptCode + ' Booster Pack (' + pack.length + ' cards)';
+  document.getElementById('pt-title').textContent = ptCode + ' Booster Pack (' + pack.length + ' cards)';
   document.getElementById('pt-pack-area').style.display = 'block';
 }
 
-async function ptCopyPack() {
-  const items = document.querySelectorAll('#pt-card-list .pt-card-item');
+async function ptCopy() {
+  const items = document.querySelectorAll('#pt-list .pt-item');
   if (!items.length) return;
-  const lines = [];
-  items.forEach(li => { const n = li.querySelector('.card-name')?.textContent.trim(); if (n) lines.push(n); });
+  const lines = [...items].map(li => li.querySelector('.pt-name')?.textContent.trim()).filter(Boolean);
   await copyText(lines.join('\n'), 'Copied!');
 }
 
-document.getElementById('pt-set-input').addEventListener('keydown', e => { if (e.key === 'Enter') ptFetchSet(); });
+function ptStat(msg) { document.getElementById('pt-status').textContent = msg; }
+document.getElementById('pt-set').addEventListener('keydown', e => { if (e.key === 'Enter') ptFetch(); });
 
-// ═══════════════════════════════════════════════
-//  UTILITIES
-// ═══════════════════════════════════════════════
-function escHtml(str) {
-  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// ══════════════════════════════════════════
+//  HOVER PREVIEW
+// ══════════════════════════════════════════
+function showPreview(card, e) {
+  if (!card.image) return;
+  document.getElementById('preview-img').src = card.image;
+  document.getElementById('card-preview').classList.add('on');
+  movePreview(e);
 }
+function movePreview(e) {
+  const el = document.getElementById('card-preview');
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + 205 > window.innerWidth)  x = e.clientX - 210;
+  if (y + 275 > window.innerHeight) y = e.clientY - 278;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+}
+function hidePreview() { document.getElementById('card-preview').classList.remove('on'); }
 
-function shortType(type) {
-  if (!type) return '';
-  return type.split('//')[0].trim().substring(0, 28);
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function shortType(t) { return (t||'').split('//')[0].trim().slice(0,28); }
+function mainType(t) {
+  if (!t) return 'Other';
+  const s = t.split('//')[0];
+  for (const o of ['Creature','Instant','Sorcery','Enchantment','Artifact','Planeswalker','Battle','Land'])
+    if (s.includes(o)) return o;
+  return 'Other';
 }
 
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 2200);
 }
 
-// ═══════════════════════════════════════════════
-//  KEYBOARD SHORTCUT
-// ═══════════════════════════════════════════════
-document.getElementById('s-set').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startDraft();
-});
+document.getElementById('s-set').addEventListener('keydown', e => { if (e.key === 'Enter') startDraft(); });
 </script>
 </body>
 </html>
