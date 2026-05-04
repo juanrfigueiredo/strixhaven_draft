@@ -1,0 +1,27 @@
+:root {
+  --bg: #171a21;
+  --surface: #1b2838;
+  --surface2: #16202d;
+  --surface3: #2a475e;
+  --border: #2a475e;
+  --border2: #3d556e;
+  --text: #c6d4df;
+  --text-dim: #8f98a0;
+  --text-faint: #3d4d5c;
+  /* Accent Steam (nomes --gold herdados do tema anterior) */
+  --gold: #66c0f4;
+  --gold2: #8fceff;
+  --accent-glow: rgba(102, 192, 244, 0.35);
+  --accent-fill-soft: rgba(102, 192, 244, 0.12);
+  --steam-green-top: #a4d007;
+  --steam-green-bot: #5c7e10;
+  --steam-green-border: #3d5708;
+  --mythic: #e8803a;
+  --rare: #d4b866;
+  --uncommon: #5ba3c9;
+  --common: #9aa5b3;
+  --land: #8bc53f;
+  --special: #b87edc;
+  --radius: 3px;
+  --nav-h: 48px;
+}
