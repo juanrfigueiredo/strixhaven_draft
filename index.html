@@ -201,12 +201,12 @@ body::before {
 
 /* ─── DRAFT TAB ─── */
 #tab-draft {
-  display: none;
   height: calc(100vh - 49px);
   overflow: hidden;
+  flex-direction: column;
 }
 
-#tab-draft.active { display: flex; flex-direction: column; }
+#tab-draft.active { display: flex; }
 
 .draft-header {
   display: flex;
@@ -434,7 +434,6 @@ body::before {
 }
 
 .export-btn {
-  margin-left: auto;
   padding: 0.5rem 1.2rem;
   background: var(--surface2);
   border: 1px solid var(--gold);
@@ -524,7 +523,6 @@ body::before {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.75);
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
@@ -727,7 +725,7 @@ li.pt-sep { border: none; border-top: 1px solid var(--border); margin: 4px 0; pa
   <div class="deck-header-row">
     <div class="deck-title">My Deck</div>
     <div class="deck-count-badge" id="dk-count">0 cards</div>
-    <button class="export-btn" onclick="exportDeck()">Export List</button>
+    <button class="export-btn" onclick="exportDeck()" style="margin-left:auto">Export List</button>
     <button class="export-btn" onclick="exportArena()">Arena Format</button>
   </div>
   <div class="deck-images-grid" id="dk-images"></div>
@@ -797,9 +795,10 @@ function showTab(name) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  const btns = document.querySelectorAll('.tab-btn');
-  const tabMap = { setup:0, draft:1, deck:2, packs:3 };
-  btns[tabMap[name]].classList.add('active');
+  // Find the button whose onclick calls showTab(name)
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.getAttribute('onclick') === "showTab('" + name + "')") btn.classList.add('active');
+  });
   if (name === 'deck') renderFullDeck();
 }
 
@@ -942,6 +941,7 @@ async function startDraft() {
   setTimeout(() => {
     showTab('draft');
     renderCurrentPack();
+    document.getElementById('s-start-btn').disabled = false;
   }, 400);
 }
 
