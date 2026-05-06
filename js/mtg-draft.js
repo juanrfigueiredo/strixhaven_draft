@@ -5,6 +5,7 @@ let setCode = '';
 let draftState = null;
 const setCardsCache = new Map();
 const PACK_PLAYABLE_SIZE = 14;
+let cardInstanceSeq = 1;
 
 const RAR_ORDER = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
 const RAR_COLOR = {
@@ -40,6 +41,7 @@ async function fetchAllPages(code) {
       cards.push({
         name:  c.name,
         cost:  c.mana_cost || '',
+        cmc:   Number.isFinite(c.cmc) ? c.cmc : 0,
         type:  c.type_line || '',
         rarity,
         image: c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || ''
@@ -69,8 +71,10 @@ function buildPool(cards) {
 // ══════════════════════════════════════════
 function pickN(arr, n) {
   const pool = [...arr], out = [];
-  for (let i = 0; i < n && pool.length; i++)
-    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  for (let i = 0; i < n && pool.length; i++) {
+    const picked = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    out.push({ ...picked, instanceId: cardInstanceSeq++ });
+  }
   return out;
 }
 
@@ -138,7 +142,7 @@ async function startDraft() {
   draftState = {
     numPlayers, numPacks,
     round: 0, pick: 0,
-    packs, deck: [], aiDecks,
+    packs, deck: [], sideboard: [], aiDecks,
     done: false
   };
 
@@ -356,55 +360,90 @@ function renderSidebar() {
 //  DECK PAGE
 // ══════════════════════════════════════════
 function renderDeckPage() {
-  const deck = draftState?.deck || [];
-  document.getElementById('dk-count').textContent = deck.length + ' cards';
+  const { mainDeck, sideboard } = getDeckZones();
+  document.getElementById('dk-count').textContent = mainDeck.length + ' main · ' + sideboard.length + ' sideboard';
 
-  const sorted = [...deck].sort((a,b) => {
-    const rd = (RAR_ORDER[a.rarity]??5) - (RAR_ORDER[b.rarity]??5);
-    return rd !== 0 ? rd : a.name.localeCompare(b.name);
-  });
+  const sortedMain = [...mainDeck].sort(byCmcThenName);
+  const sortedSide = [...sideboard].sort(byCmcThenName);
 
-  // Images grid
   const imgsEl = document.getElementById('dk-imgs');
   imgsEl.innerHTML = '';
-  sorted.forEach(card => {
-    const div = document.createElement('div');
-    div.className = 'dk-card';
-    if (card.image) {
-      div.innerHTML =
-        '<img src="' + esc(card.image) + '" alt="' + esc(card.name) + '" loading="lazy">' +
-        '<div class="r-dot" style="background:' + (RAR_COLOR[card.rarity]||'#888') + '"></div>';
-    } else {
-      div.innerHTML =
-        '<div class="card-fallback">' +
-          '<div class="rp rp-' + card.rarity + '"></div>' +
-          '<div class="cf-name">' + esc(card.name) + '</div>' +
-          '<div class="cf-type">' + esc(shortType(card.type)) + '</div>' +
-        '</div>';
-    }
-    div.addEventListener('mouseenter', e => showPreview(card, e));
-    div.addEventListener('mousemove',  e => movePreview(e));
-    div.addEventListener('mouseleave', hidePreview);
-    imgsEl.appendChild(div);
-  });
+  imgsEl.appendChild(buildZoneTitle('Main Deck (' + sortedMain.length + ')'));
+  const mainGrid = document.createElement('div');
+  mainGrid.className = 'deck-zone-grid';
+  sortedMain.forEach(card => mainGrid.appendChild(createDeckCard(card, true)));
+  imgsEl.appendChild(mainGrid);
 
-  // By type
-  const buckets = {};
-  sorted.forEach(c => {
-    const t = mainType(c.type);
-    (buckets[t] = buckets[t] || []).push(c);
-  });
+  imgsEl.appendChild(buildZoneTitle('Sideboard (' + sortedSide.length + ')'));
+  const sideGrid = document.createElement('div');
+  sideGrid.className = 'deck-zone-grid';
+  sortedSide.forEach(card => sideGrid.appendChild(createDeckCard(card, false)));
+  imgsEl.appendChild(sideGrid);
+
   const typesEl = document.getElementById('dk-types');
   typesEl.innerHTML = '';
-  ['Creature','Instant','Sorcery','Enchantment','Artifact','Planeswalker','Battle','Land','Other'].forEach(t => {
-    const group = buckets[t];
-    if (!group?.length) return;
-    const h = document.createElement('h4');
-    h.textContent = t + ' (' + group.length + ')';
-    typesEl.appendChild(h);
+  typesEl.appendChild(buildCmcSection('Main Deck by CMC', sortedMain));
+  typesEl.appendChild(buildCmcSection('Sideboard by CMC', sortedSide));
+}
+
+function createDeckCard(card, inMainDeck) {
+  const div = document.createElement('div');
+  div.className = 'dk-card';
+  if (card.image) {
+    div.innerHTML =
+      '<img src="' + esc(card.image) + '" alt="' + esc(card.name) + '" loading="lazy">' +
+      '<div class="r-dot" style="background:' + (RAR_COLOR[card.rarity]||'#888') + '"></div>';
+  } else {
+    div.innerHTML =
+      '<div class="card-fallback">' +
+        '<div class="rp rp-' + card.rarity + '"></div>' +
+        '<div class="cf-name">' + esc(card.name) + '</div>' +
+        '<div class="cf-type">' + esc(shortType(card.type)) + '</div>' +
+      '</div>';
+  }
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'dk-toggle';
+  toggle.textContent = inMainDeck ? 'To Sideboard' : 'To Main';
+  toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleSideboard(card.instanceId, inMainDeck);
+  });
+  div.appendChild(toggle);
+
+  div.addEventListener('mouseenter', e => showPreview(card, e));
+  div.addEventListener('mousemove', e => movePreview(e));
+  div.addEventListener('mouseleave', hidePreview);
+  return div;
+}
+
+function buildZoneTitle(text) {
+  const h = document.createElement('h3');
+  h.className = 'deck-zone-title';
+  h.textContent = text;
+  return h;
+}
+
+function buildCmcSection(title, cards) {
+  const wrap = document.createElement('div');
+  const h = document.createElement('h4');
+  h.textContent = title;
+  wrap.appendChild(h);
+
+  const buckets = new Map();
+  cards.forEach(card => {
+    const key = Number.isFinite(card.cmc) ? card.cmc : 0;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(card);
+  });
+
+  [...buckets.entries()].sort((a, b) => a[0] - b[0]).forEach(([cmc, group]) => {
+    const sub = document.createElement('h4');
+    sub.textContent = 'CMC ' + cmc + ' (' + group.length + ')';
+    wrap.appendChild(sub);
     const ul = document.createElement('ul');
     ul.className = 'type-list';
-    group.forEach(card => {
+    group.sort(byCmcThenName).forEach(card => {
       const li = document.createElement('li');
       li.className = 'type-item';
       li.innerHTML =
@@ -413,28 +452,69 @@ function renderDeckPage() {
         '<span style="margin-left:auto;font-size:10px;color:var(--text-dim);font-family:monospace">' + esc(card.cost) + '</span>';
       ul.appendChild(li);
     });
-    typesEl.appendChild(ul);
+    wrap.appendChild(ul);
   });
+  return wrap;
+}
+
+function toggleSideboard(instanceId, toSideboard) {
+  if (!draftState) return;
+  draftState.sideboard ||= [];
+  if (toSideboard) {
+    const idx = draftState.deck.findIndex(c => c.instanceId === instanceId);
+    if (idx === -1) return;
+    draftState.sideboard.push(draftState.deck[idx]);
+  } else {
+    draftState.sideboard = draftState.sideboard.filter(c => c.instanceId !== instanceId);
+  }
+  renderDeckPage();
+}
+
+function getDeckZones() {
+  const deck = draftState?.deck || [];
+  const sideboard = draftState?.sideboard || [];
+  const sideIds = new Set(sideboard.map(c => c.instanceId));
+  const mainDeck = deck.filter(c => !sideIds.has(c.instanceId));
+  return { mainDeck, sideboard };
+}
+
+function byCmcThenName(a, b) {
+  const cmcA = Number.isFinite(a.cmc) ? a.cmc : 0;
+  const cmcB = Number.isFinite(b.cmc) ? b.cmc : 0;
+  if (cmcA !== cmcB) return cmcA - cmcB;
+  return a.name.localeCompare(b.name);
 }
 
 // ══════════════════════════════════════════
 //  EXPORT
 // ══════════════════════════════════════════
 function exportDeck() {
-  const deck = draftState?.deck || [];
-  if (!deck.length) { showToast('No cards yet!'); return; }
+  const { mainDeck, sideboard } = getDeckZones();
+  if (!mainDeck.length && !sideboard.length) { showToast('No cards yet!'); return; }
   const counts = {};
-  deck.forEach(c => counts[c.name] = (counts[c.name]||0) + 1);
-  const txt = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c+'x '+n).join('\n');
+  mainDeck.forEach(c => counts[c.name] = (counts[c.name] || 0) + 1);
+  const mainLines = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => c + 'x ' + n);
+  const sbCounts = {};
+  sideboard.forEach(c => sbCounts[c.name] = (sbCounts[c.name] || 0) + 1);
+  const sideLines = Object.entries(sbCounts).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => c + 'x ' + n);
+  const txt = sideLines.length
+    ? mainLines.join('\n') + '\n\nSideboard\n' + sideLines.join('\n')
+    : mainLines.join('\n');
   copyText(txt, 'Deck list copied!');
 }
 
 function exportArena() {
-  const deck = draftState?.deck || [];
-  if (!deck.length) { showToast('No cards yet!'); return; }
+  const { mainDeck, sideboard } = getDeckZones();
+  if (!mainDeck.length && !sideboard.length) { showToast('No cards yet!'); return; }
   const counts = {};
-  deck.forEach(c => counts[c.name] = (counts[c.name]||0) + 1);
-  const txt = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0])).map(([n,c]) => c+' '+n+' ('+setCode+')').join('\n');
+  mainDeck.forEach(c => counts[c.name] = (counts[c.name] || 0) + 1);
+  const mainLines = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => c + ' ' + n + ' (' + setCode + ')');
+  const sbCounts = {};
+  sideboard.forEach(c => sbCounts[c.name] = (sbCounts[c.name] || 0) + 1);
+  const sideLines = Object.entries(sbCounts).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => 'SB: ' + c + ' ' + n + ' (' + setCode + ')');
+  const txt = sideLines.length
+    ? mainLines.join('\n') + '\n' + sideLines.join('\n')
+    : mainLines.join('\n');
   copyText(txt, 'Arena format copied!');
 }
 
