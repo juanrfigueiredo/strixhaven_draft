@@ -185,15 +185,29 @@ function pickCard(idx) {
   if (!draftState || draftState.done) return;
   const { round, numPlayers, packs } = draftState;
   const humanPack = packs[round][0];
-
+  
   draftState.deck.push(humanPack.splice(idx, 1)[0]);
   draftState.pick++;
-
-  // AI picks
+  
+  // AI picks — prioritize highest rarity
   for (let p = 1; p < numPlayers; p++) {
     const ap = packs[round][p];
-    if (ap.length) ap.splice(Math.floor(Math.random() * ap.length), 1);
-  }
+    if (!ap.length) continue;
+    
+    // Find the card with the best rarity
+    let bestIdx = 0;
+    let bestScore = RAR_ORDER[ap[0].rarity] ?? 5;
+    
+    for (let i = 1; i < ap.length; i++) {
+      const score = RAR_ORDER[ap[i].rarity] ?? 5;
+      if (score < bestScore) {   // lower RAR_ORDER = better rarity
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    
+    ap.splice(bestIdx, 1);
+}
 
   if (humanPack.length > 0) {
     rotatePacks(round);
