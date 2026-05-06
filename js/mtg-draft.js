@@ -3,6 +3,8 @@
 // ══════════════════════════════════════════
 let setCode = '';
 let draftState = null;
+const setCardsCache = new Map();
+const PACK_PLAYABLE_SIZE = 14;
 
 const RAR_ORDER = { mythic:0, special:1, rare:2, uncommon:3, land:4, common:5 };
 const RAR_COLOR = {
@@ -17,9 +19,8 @@ function goTo(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => {
-    if (b.getAttribute('onclick') === "goTo('" + name + "')") b.classList.add('active');
-  });
+  const activeBtn = document.querySelector('.nav-btn[data-page="' + name + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
   if (name === 'deck') renderDeckPage();
 }
 
@@ -50,6 +51,13 @@ async function fetchAllPages(code) {
   return cards;
 }
 
+async function getCardsForSet(code) {
+  if (setCardsCache.has(code)) return setCardsCache.get(code);
+  const cards = await fetchAllPages(code);
+  setCardsCache.set(code, cards);
+  return cards;
+}
+
 function buildPool(cards) {
   const p = { mythic:[], rare:[], uncommon:[], common:[], land:[], special:[] };
   cards.forEach(c => (p[c.rarity] = p[c.rarity] || []).push(c));
@@ -75,15 +83,20 @@ function makePack(pool) {
 
   pack.push(...pickN(pool.uncommon, Math.min(3, pool.uncommon.length)));
 
-  const left = Math.max(0, 14 - pack.length);
+  const left = Math.max(0, PACK_PLAYABLE_SIZE - pack.length);
   pack.push(...pickN(pool.common, Math.min(left, pool.common.length)));
 
-  if (pack.length < 5) {
+  if (pack.length < PACK_PLAYABLE_SIZE) {
     const all = Object.values(pool).flat();
-    const have = new Set(pack.map(c => c.name));
-    pack.push(...pickN(all.filter(c => !have.has(c.name)), 14 - pack.length));
+    pack.push(...pickN(all, PACK_PLAYABLE_SIZE - pack.length));
   }
   return pack;
+}
+
+function buildDraftPacks(pool, numPlayers, numPacks) {
+  return Array.from({ length: numPacks }, () =>
+    Array.from({ length: numPlayers }, () => makePack(pool))
+  );
 }
 
 // ══════════════════════════════════════════
@@ -102,7 +115,7 @@ async function startDraft() {
   setProg(10);
 
   let cards;
-  try { cards = await fetchAllPages(code); }
+  try { cards = await getCardsForSet(code); }
   catch (e) { setStat('Error: ' + e.message); btn.disabled = false; return; }
 
   if (!cards.length) {
@@ -117,11 +130,17 @@ async function startDraft() {
   setProg(60);
 
   // packs[round][player]
-  const packs = [];
-  for (let r = 0; r < numPacks; r++)
-    packs.push(Array.from({ length: numPlayers }, () => makePack(pool)));
+  const packs = buildDraftPacks(pool, numPlayers, numPacks);
 
-  draftState = { numPlayers, numPacks, round: 0, pick: 0, packs, deck: [], done: false };
+  // Track each AI player's picked cards for color-synergy logic
+  const aiDecks = Array.from({ length: numPlayers }, () => []);
+
+  draftState = {
+    numPlayers, numPacks,
+    round: 0, pick: 0,
+    packs, deck: [], aiDecks,
+    done: false
+  };
 
   setProg(100);
   setStat('Draft ready! ' + numPlayers + ' players · ' + numPacks + ' packs each.');
@@ -138,6 +157,70 @@ function setStat(msg) { document.getElementById('s-status').textContent = msg; }
 function setProg(p)   { document.getElementById('s-prog').style.width = p + '%'; }
 
 // ══════════════════════════════════════════
+//  AI PICK LOGIC
+// ══════════════════════════════════════════
+
+/**
+ * Build a color-frequency map from a list of cards.
+ * Returns { W: n, U: n, B: n, R: n, G: n }
+ */
+function buildColorCount(cards) {
+  const count = {};
+  cards.forEach(c => {
+    (c.cost.match(/[WUBRG]/g) || []).forEach(col => {
+      count[col] = (count[col] || 0) + 1;
+    });
+  });
+  return count;
+}
+
+/**
+ * Score a card against a color-frequency map.
+ * Higher = better color fit.
+ */
+function colorSynergyScore(card, colorCount) {
+  let score = 0;
+  (card.cost.match(/[WUBRG]/g) || []).forEach(col => {
+    score += colorCount[col] || 0;
+  });
+  return score;
+}
+
+/**
+ * AI pick for a single player:
+ * - Always take the highest rarity available.
+ * - From pack 2 onward (round >= 1), break rarity ties using color synergy
+ *   with the AI's already-picked cards.
+ */
+function aiPickBest(pack, aiPicks, round) {
+  if (!pack.length) return -1;
+
+  // Pre-compute color counts once per player per pick
+  const colorCount = round >= 1 ? buildColorCount(aiPicks) : {};
+
+  let bestIdx      = 0;
+  let bestRar      = RAR_ORDER[pack[0].rarity] ?? 5;
+  let bestColor    = round >= 1 ? colorSynergyScore(pack[0], colorCount) : 0;
+
+  for (let i = 1; i < pack.length; i++) {
+    const card   = pack[i];
+    const rar    = RAR_ORDER[card.rarity] ?? 5;
+    const color  = round >= 1 ? colorSynergyScore(card, colorCount) : 0;
+
+    if (
+      rar < bestRar ||
+      (rar === bestRar && color > bestColor)
+    ) {
+      bestRar   = rar;
+      bestColor = color;
+      bestIdx   = i;
+    }
+  }
+
+  return bestIdx;
+}
+
+// ══════════════════════════════════════════
 //  DRAFT LOGIC
 // ══════════════════════════════════════════
 function renderPack() {
@@ -151,15 +234,18 @@ function renderPack() {
 
   sorted.forEach(card => {
     const origIdx = humanPack.indexOf(card);
-    const div = document.createElement('div');
-    div.className = 'pack-card';
+    const btn = document.createElement('button');
+    btn.className = 'pack-card';
+    btn.type = 'button';
+    btn.setAttribute('role', 'listitem');
+    btn.setAttribute('aria-label', 'Pick ' + card.name);
 
     if (card.image) {
-      div.innerHTML =
+      btn.innerHTML =
         '<img src="' + esc(card.image) + '" alt="' + esc(card.name) + '" loading="lazy">' +
         '<div class="r-dot" style="background:' + (RAR_COLOR[card.rarity]||'#888') + '"></div>';
     } else {
-      div.innerHTML =
+      btn.innerHTML =
         '<div class="card-fallback">' +
           '<div class="rp rp-' + card.rarity + '"></div>' +
           '<div class="cf-name">' + esc(card.name) + '</div>' +
@@ -168,11 +254,13 @@ function renderPack() {
         '</div>';
     }
 
-    div.addEventListener('click',      ()  => pickCard(origIdx));
-    div.addEventListener('mouseenter', e   => showPreview(card, e));
-    div.addEventListener('mousemove',  e   => movePreview(e));
-    div.addEventListener('mouseleave', ()  => hidePreview());
-    grid.appendChild(div);
+    btn.addEventListener('click', () => pickCard(origIdx));
+    btn.addEventListener('mouseenter', e => showPreview(card, e));
+    btn.addEventListener('mousemove', e => movePreview(e));
+    btn.addEventListener('mouseleave', () => hidePreview());
+    btn.addEventListener('focus', () => showPreviewForElement(card, btn));
+    btn.addEventListener('blur', () => hidePreview());
+    grid.appendChild(btn);
   });
 
   document.getElementById('d-round').textContent = 'Round ' + (round+1) + ' of ' + numPacks;
@@ -183,31 +271,20 @@ function renderPack() {
 
 function pickCard(idx) {
   if (!draftState || draftState.done) return;
-  const { round, numPlayers, packs } = draftState;
+  const { round, numPlayers, packs, aiDecks } = draftState;
   const humanPack = packs[round][0];
-  
+
   draftState.deck.push(humanPack.splice(idx, 1)[0]);
   draftState.pick++;
-  
-  // AI picks — prioritize highest rarity
+
+  // AI picks — rarity first, then color synergy from pack 2 onward
   for (let p = 1; p < numPlayers; p++) {
     const ap = packs[round][p];
     if (!ap.length) continue;
-    
-    // Find the card with the best rarity
-    let bestIdx = 0;
-    let bestScore = RAR_ORDER[ap[0].rarity] ?? 5;
-    
-    for (let i = 1; i < ap.length; i++) {
-      const score = RAR_ORDER[ap[i].rarity] ?? 5;
-      if (score < bestScore) {   // lower RAR_ORDER = better rarity
-        bestScore = score;
-        bestIdx = i;
-      }
-    }
-    
-    ap.splice(bestIdx, 1);
-}
+    const bestIdx = aiPickBest(ap, aiDecks[p], round);
+    const [picked] = ap.splice(bestIdx, 1);
+    aiDecks[p].push(picked);
+  }
 
   if (humanPack.length > 0) {
     rotatePacks(round);
@@ -377,7 +454,7 @@ async function ptFetch() {
   if (!code) { ptStat('Enter a set code.'); return; }
   ptStat('Fetching…');
   try {
-    const cards = await fetchAllPages(code);
+    const cards = await getCardsForSet(code);
     if (!cards.length) { ptStat('No cards found for "' + code.toUpperCase() + '".'); return; }
     ptCode = code.toUpperCase();
     ptPool = buildPool(cards);
@@ -443,6 +520,10 @@ function showPreview(card, e) {
   document.getElementById('card-preview').classList.add('on');
   movePreview(e);
 }
+function showPreviewForElement(card, el) {
+  const rect = el.getBoundingClientRect();
+  showPreview(card, { clientX: rect.right, clientY: rect.top });
+}
 function movePreview(e) {
   const el = document.getElementById('card-preview');
   let x = e.clientX + 14, y = e.clientY + 14;
@@ -475,5 +556,23 @@ function showToast(msg) {
   setTimeout(() => el.classList.remove('on'), 2200);
 }
 
-document.getElementById('pt-set').addEventListener('keydown', e => { if (e.key === 'Enter') ptFetch(); });
-document.getElementById('s-set').addEventListener('keydown', e => { if (e.key === 'Enter') startDraft(); });
+// ══════════════════════════════════════════
+//  EVENT LISTENERS
+// ══════════════════════════════════════════
+function initEventListeners() {
+  document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => goTo(btn.dataset.page));
+  });
+
+  document.querySelector('[data-action="start-draft"]').addEventListener('click', startDraft);
+  document.querySelector('[data-action="export-deck"]').addEventListener('click', exportDeck);
+  document.querySelector('[data-action="export-arena"]').addEventListener('click', exportArena);
+  document.querySelector('[data-action="pt-fetch"]').addEventListener('click', ptFetch);
+  document.querySelector('[data-action="pt-new-pack"]').addEventListener('click', ptNewPack);
+  document.querySelector('[data-action="pt-copy"]').addEventListener('click', ptCopy);
+
+  document.getElementById('pt-set').addEventListener('keydown', e => { if (e.key === 'Enter') ptFetch(); });
+  document.getElementById('s-set').addEventListener('keydown', e => { if (e.key === 'Enter') startDraft(); });
+}
+
+initEventListeners();

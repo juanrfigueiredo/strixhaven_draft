@@ -10,25 +10,26 @@
 <body>
 
 <!-- TOP NAV -->
-<nav id="topnav">
+<nav id="topnav" aria-label="Primary">
   <span class="nav-logo">✦ MTG Draft</span>
-  <button class="nav-btn active"  onclick="goTo('setup')">Setup</button>
-  <button class="nav-btn" id="nav-draft" onclick="goTo('draft')" disabled>Draft</button>
-  <button class="nav-btn" id="nav-deck"  onclick="goTo('deck')"  disabled>My Deck</button>
-  <button class="nav-btn" onclick="goTo('packs')">Pack Tool</button>
+  <button class="nav-btn active" data-page="setup">Setup</button>
+  <button class="nav-btn" id="nav-draft" data-page="draft" disabled>Draft</button>
+  <button class="nav-btn" id="nav-deck" data-page="deck" disabled>My Deck</button>
+  <button class="nav-btn" data-page="packs">Pack Tool</button>
 </nav>
 
+<main id="app-main">
 <!-- SETUP PAGE -->
-<div class="page active" id="page-setup">
+<section class="page active" id="page-setup" aria-labelledby="setup-title">
   <div class="setup-card">
-    <div class="setup-title">The Draft Table</div>
+    <h1 class="setup-title" id="setup-title">The Draft Table</h1>
     <div class="setup-sub">Open packs, forge your deck, claim glory.</div>
     <div class="field">
-      <label>Set Code</label>
+      <label for="s-set">Set Code</label>
       <input type="text" id="s-set" placeholder="e.g. dsk, blb, sos, mh3" maxlength="10" autocomplete="off" spellcheck="false">
     </div>
     <div class="field">
-      <label>Players (including you)</label>
+      <label for="s-players">Players (including you)</label>
       <select id="s-players">
         <option value="2">2 players</option>
         <option value="4">4 players</option>
@@ -37,7 +38,7 @@
       </select>
     </div>
     <div class="field">
-      <label>Packs per Player</label>
+      <label for="s-packs">Packs per Player</label>
       <select id="s-packs">
         <option value="1">1 pack</option>
         <option value="2">2 packs</option>
@@ -45,14 +46,14 @@
         <option value="4">4 packs</option>
       </select>
     </div>
-    <button class="start-btn" id="s-btn" onclick="startDraft()">Fetch Set &amp; Begin Draft</button>
-    <div class="status-msg" id="s-status">Enter a set code to begin.</div>
+    <button class="start-btn" id="s-btn" data-action="start-draft">Fetch Set &amp; Begin Draft</button>
+    <div class="status-msg" id="s-status" role="status" aria-live="polite">Enter a set code to begin.</div>
     <div class="progress-bar"><div class="progress-fill" id="s-prog"></div></div>
   </div>
-</div>
+</section>
 
 <!-- DRAFT PAGE -->
-<div class="page" id="page-draft">
+<section class="page" id="page-draft" aria-labelledby="d-pack-title">
   <div class="draft-bar">
     <div>
       <div class="draft-round" id="d-round">Round 1</div>
@@ -63,53 +64,54 @@
   <div class="draft-body">
     <div class="pack-area">
       <div class="pack-area-title" id="d-pack-title">Your Pack</div>
-      <div class="pack-grid" id="d-grid"></div>
+      <div class="pack-grid" id="d-grid" role="list"></div>
     </div>
     <div class="picks-sidebar">
       <h3>My Picks</h3>
       <ul class="picks-list" id="d-picks"></ul>
     </div>
   </div>
-</div>
+</section>
 
 <!-- DECK PAGE -->
-<div class="page" id="page-deck">
+<section class="page" id="page-deck" aria-labelledby="deck-title">
   <div class="deck-header">
-    <div class="deck-title">My Deck</div>
+    <h2 class="deck-title" id="deck-title">My Deck</h2>
     <div class="badge" id="dk-count">0 cards</div>
-    <button class="exp-btn exp-btn-first" onclick="exportDeck()">Export List</button>
-    <button class="exp-btn" onclick="exportArena()">Arena Format</button>
+    <button class="exp-btn exp-btn-first" data-action="export-deck">Export List</button>
+    <button class="exp-btn" data-action="export-arena">Arena Format</button>
   </div>
   <div class="deck-imgs" id="dk-imgs"></div>
   <div class="by-type-section" id="dk-types"></div>
-</div>
+</section>
 
 <!-- PACK TOOL PAGE -->
-<div class="page" id="page-packs">
-  <h2>Pack Generator</h2>
+<section class="page" id="page-packs" aria-labelledby="packs-title">
+  <h2 id="packs-title">Pack Generator</h2>
   <div class="row">
     <input type="text" id="pt-set" placeholder="Set code (e.g. sos, dsk)" maxlength="10" autocomplete="off" spellcheck="false">
-    <button class="small-btn" onclick="ptFetch()">Fetch Set</button>
+    <button class="small-btn" data-action="pt-fetch">Fetch Set</button>
   </div>
-  <div class="pt-status" id="pt-status">Enter a set code to load the card pool.</div>
+  <div class="pt-status" id="pt-status" role="status" aria-live="polite">Enter a set code to load the card pool.</div>
   <div class="pt-stats"  id="pt-stats"></div>
   <hr class="pt-hr">
   <div id="pt-pack-area">
     <div class="pt-pack-header">
       <h3 id="pt-title"></h3>
       <div class="pt-actions">
-        <button class="small-btn" onclick="ptNewPack()">New Pack</button>
-        <button class="small-btn" onclick="ptCopy()">Copy</button>
+        <button class="small-btn" data-action="pt-new-pack">New Pack</button>
+        <button class="small-btn" data-action="pt-copy">Copy</button>
       </div>
     </div>
     <ul class="pt-list" id="pt-list"></ul>
     <div id="pt-imgs"></div>
   </div>
-</div>
+</section>
+</main>
 
 <!-- Hover preview -->
 <div id="card-preview"><img id="preview-img" src="" alt=""></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/mtg-draft.js" defer></script>
 </body>
